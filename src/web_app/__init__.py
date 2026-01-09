@@ -169,6 +169,10 @@ def create_app(config_object=None):
     from .blueprints.onboarding import bp as onboarding_bp
     app.register_blueprint(onboarding_bp)
 
+    # Data integrations blueprint for API connections
+    from .blueprints.integrations import integrations_bp
+    app.register_blueprint(integrations_bp)
+
     # Root-level health check for Docker (no authentication required)
     @app.route('/health')
     def root_health():

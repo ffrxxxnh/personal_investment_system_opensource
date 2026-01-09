@@ -1,0 +1,54 @@
+# Sample Bank Plugin
+id: sample_bank
+name: Sample Bank Integration
+version: 1.0.0
+author: WealthOS Community
+description: |
+  A sample/template bank integration plugin demonstrating how to build
+  custom banking connectors. Use this as a starting point for your own
+  bank integrations.
+
+# Plugin capabilities
+capabilities:
+  - HOLDINGS
+  - TRANSACTIONS
+  - BALANCES
+
+# Supported countries (ISO codes)
+supported_countries:
+  - US
+  - CN
+
+# Authentication type: api_key, oauth, credentials
+authentication_type: credentials
+
+# Required configuration fields
+required_fields:
+  - username
+  - password
+
+# Optional configuration fields
+optional_fields:
+  - account_number
+  - branch_code
+
+# Documentation and help
+documentation_url: https://github.com/your-org/wealthos-plugins/wiki/sample-bank
+icon_url: https://example.com/icons/bank.png
+
+# Minimum WealthOS version required
+min_system_version: "1.0.0"
+
+# Additional metadata
+tags:
+  - sample
+  - template
+  - demo
+
+# Change log
+changelog:
+  - version: 1.0.0
+    date: 2026-01-09
+    changes:
+      - Initial release
+      - Basic holdings and transactions support

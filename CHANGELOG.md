@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Automated Data Integrations**: API-based portfolio sync replacing manual Excel/CSV workflows
+  - **Base Connector Framework** (`src/data_manager/connectors/`)
+    - `base_connector.py`: Abstract base class with standard interface
+    - `utils.py`: Rate limiting, response caching, retry with exponential backoff
+    - Standard column definitions for holdings and transactions
+  - **CCXT Crypto Integration** (`ccxt_connector.py`)
+    - Support for 100+ exchanges (Binance, Coinbase, Kraken, OKX, etc.)
+    - Unified balance and transaction fetching
+    - Automatic rate limit handling per exchange
+  - **Interactive Brokers Integration** (`ibkr_connector.py`)
+    - Client Portal API support with JWT authentication
+    - Multi-account support (Individual, Joint, IRA, 401k)
+    - Support for stocks, bonds, options, futures, forex, crypto
+  - **Tiingo Market Data** (`tiingo_connector.py`)
+    - Real-time and historical price data
+    - Support for stocks, ETFs, crypto, forex
+    - Multi-provider fallback (Tiingo → Yahoo → Alpha Vantage)
+  - **Plugin System** (`src/plugins/`)
+    - `base.py`: Abstract plugin class for bank integrations
+    - `manager.py`: Plugin discovery, loading, and validation
+    - `registry.py`: Plugin registration and capability tracking
+    - Sample bank plugin with full documentation
+  - **Import Orchestrator** (`src/data_manager/import_orchestrator.py`)
+    - Unified data pipeline coordinating all sources
+    - Deduplication and conflict resolution
+    - Data quality validation
+  - **Database Models**
+    - `ImportJob`: Track sync operations and history
+    - `PluginConfig`: Store encrypted plugin credentials
+    - `DataSourceMetadata`: Track data lineage and quality
+  - **Web UI** (`src/web_app/blueprints/integrations/`)
+    - Dashboard for managing data sources
+    - Crypto holdings view with exchange breakdown
+    - Broker connection management
+    - Import history and error logs
+  - **Configuration** (`config/data_sources.yaml`)
+    - Centralized integration configuration
+    - Environment variable support for credentials
+    - Rate limiting and caching settings
+  - **Documentation** (`docs/automated-integrations/`)
+    - `task_plan.md`: Development phases and progress tracking
+    - `implementation.md`: Technical specs and code examples
+    - `notes.md`: Research findings and design decisions
+    - `PLUGIN_DEVELOPMENT.md`: Guide for creating plugins
+    - `troubleshooting.md`: Common issues and solutions
+    - Setup guides for Binance, Coinbase, IBKR, Tiingo
+  - **Tests** (`tests/connectors/`)
+    - 82 unit tests covering base connector, utilities, and plugin framework
+    - 100% test pass rate
+
 ## [1.1.0] - 2026-01-09
 
 ### Added

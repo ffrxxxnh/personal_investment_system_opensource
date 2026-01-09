@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('Broker Connections') }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ url_for('integrations.dashboard') }}">{{ _('Integrations')
+                            }}</a></li>
+                    <li class="breadcrumb-item active">{{ _('Brokers') }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ _('Broker Connections') }}</h1>
+        </div>
+    </div>
+
+    <!-- Broker Cards -->
+    <div class="row g-4">
+        {% for broker in brokers %}
+        <div class="col-md-6">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3">
+                            <i class="bi bi-bank text-success fs-5"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="mb-0">{{ broker.name }}</h5>
+                            {% if broker.enabled %}
+                            <span class="badge bg-success">{{ _('Connected') }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ _('Not Connected') }}</span>
+                            {% endif %}
+                        </div>
+                        {% if broker.auth_type == 'oauth' %}
+                        <span class="badge bg-info text-dark">OAuth</span>
+                        {% else %}
+                        <span class="badge bg-secondary">API</span>
+                        {% endif %}
+                    </div>
+
+                    {% if broker.id == 'schwab' %}
+                    <p class="text-muted small mb-3">
+                        {{ _('Connect your Charles Schwab accounts to automatically sync positions and transactions.
+                        Uses OAuth for secure authentication.') }}
+                    </p>
+                    {% elif broker.id == 'ibkr' %}
+                    <p class="text-muted small mb-3">
+                        {{ _('Connect to Interactive Brokers via the Client Portal API. Supports stocks, options,
+                        futures, and more.') }}
+                    </p>
+                    {% endif %}
+
+                    {% if broker.enabled %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between text-muted small mb-1">
+                            <span>{{ _('Last Sync') }}</span>
+                            <span>{{ broker.last_sync.strftime('%Y-%m-%d %H:%M') if broker.last_sync else _('Never')
+                                }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between text-muted small">
+                            <span>{{ _('Accounts') }}</span>
+                            <span>{{ broker.account_count or 0 }}</span>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <form action="{{ url_for('integrations.sync_broker', broker_id=broker.id) }}" method="post"
+                            class="flex-grow-1">
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                <i class="bi bi-arrow-repeat"></i> {{ _('Sync') }}
+                            </button>
+                        </form>
+                        <button class="btn btn-outline-danger btn-sm" disabled>
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    {% else %}
+                    <a href="{{ url_for('integrations.connect_broker', broker_id=broker.id) }}"
+                        class="btn btn-outline-primary btn-sm w-100">
+                        <i class="bi bi-plug"></i> {{ _('Connect') }}
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Info Cards -->
+    <div class="row g-4 mt-2">
+        <div class="col-md-6">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <div class="d-flex">
+                        <i class="bi bi-info-circle text-primary fs-4 me-3"></i>
+                        <div>
+                            <h6>{{ _('About Schwab Integration') }}</h6>
+                            <p class="small text-muted mb-0">
+                                {{ _('Schwab uses OAuth 2.0 for secure authentication. You will be redirected to Schwab
+                                to authorize access. Only read permissions are requested.') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <div class="d-flex">
+                        <i class="bi bi-info-circle text-primary fs-4 me-3"></i>
+                        <div>
+                            <h6>{{ _('About IBKR Integration') }}</h6>
+                            <p class="small text-muted mb-0">
+                                {{ _('Interactive Brokers requires the IB Gateway to be running locally, or a JWT token
+                                for cloud access. Visit the IB documentation for setup instructions.') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

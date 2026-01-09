@@ -1,0 +1,186 @@
+# Data Sources Configuration
+# config/data_sources.yaml
+
+# =============================================================================
+# This file configures all automated data integrations for the system.
+# Each data source can be enabled/disabled and configured independently.
+# 
+# SECURITY NOTE: Do NOT store API keys directly in this file.
+# Use environment variables instead (see .env.example).
+# =============================================================================
+
+# Global settings for all data sources
+global:
+  # Default sync frequency (manual, hourly, daily, weekly)
+  default_sync_frequency: daily
+  
+  # Maximum retries on failure
+  max_retries: 3
+  
+  # Timeout for API calls (seconds)
+  request_timeout: 30
+  
+  # Cache settings
+  cache:
+    enabled: true
+    ttl_seconds: 300  # 5 minutes
+  
+  # Rate limiting (per source override available)
+  rate_limiting:
+    enabled: true
+    calls_per_minute: 60
+
+# =============================================================================
+# BROKER INTEGRATIONS
+# =============================================================================
+brokers:
+  schwab:
+    enabled: false
+    description: "Charles Schwab brokerage accounts"
+    auth_type: oauth2
+    sync_frequency: daily
+    # OAuth settings - use environment variables
+    client_id: ${SCHWAB_CLIENT_ID}
+    client_secret: ${SCHWAB_CLIENT_SECRET}
+    redirect_uri: "http://localhost:5000/auth/schwab/callback"
+    # Account filter (empty = all accounts)
+    account_filter: []
+    
+  ibkr:
+    enabled: false
+    description: "Interactive Brokers accounts"
+    auth_type: jwt
+    sync_frequency: daily
+    # API settings
+    jwt_token: ${IBKR_JWT_TOKEN}
+    gateway_url: "https://localhost:5000"
+    # Rate limits specific to IBKR
+    rate_limit:
+      calls_per_second: 50
+    # Account filter
+    account_filter: []
+
+# =============================================================================
+# CRYPTOCURRENCY EXCHANGES (via CCXT)
+# =============================================================================
+crypto:
+  # Global crypto settings
+  enabled: false
+  sync_frequency: hourly  # Crypto is more volatile
+  
+  exchanges:
+    binance:
+      enabled: false
+      api_key: ${BINANCE_API_KEY}
+      api_secret: ${BINANCE_API_SECRET}
+      # Use testnet for development
+      sandbox: false
+      
+    coinbase:
+      enabled: false
+      api_key: ${COINBASE_API_KEY}
+      api_secret: ${COINBASE_API_SECRET}
+      
+    kraken:
+      enabled: false
+      api_key: ${KRAKEN_API_KEY}
+      api_secret: ${KRAKEN_API_SECRET}
+      
+    okx:
+      enabled: false
+      api_key: ${OKX_API_KEY}
+      api_secret: ${OKX_API_SECRET}
+      passphrase: ${OKX_PASSPHRASE}
+
+# =============================================================================
+# MARKET DATA PROVIDERS
+# =============================================================================
+market_data:
+  # Provider priority (first available is used)
+  provider_priority:
+    - tiingo
+    - yahoo_finance
+    - alpha_vantage
+  
+  # Cache settings for prices
+  price_cache_ttl: 300  # 5 minutes
+  
+  providers:
+    tiingo:
+      enabled: false
+      api_key: ${TIINGO_API_KEY}
+      # Free tier: 500 unique symbols/month
+      rate_limit:
+        calls_per_hour: 500
+        
+    yahoo_finance:
+      enabled: true  # No API key needed
+      # Used as fallback, always enabled
+      rate_limit:
+        calls_per_minute: 30
+        
+    alpha_vantage:
+      enabled: false
+      api_key: ${ALPHA_VANTAGE_KEY}
+      # Free tier: 5 calls/min, 500/day
+      rate_limit:
+        calls_per_minute: 5
+        calls_per_day: 500
+
+# =============================================================================
+# PLUGIN SETTINGS
+# =============================================================================
+plugins:
+  # Enable plugin system
+  enabled: true
+  
+  # Directory for plugins (relative to project root)
+  plugins_dir: "src/plugins/bank_plugins"
+  
+  # Auto-discover plugins on startup
+  auto_discover: true
+  
+  # Security settings
+  security:
+    # Validate plugin code before loading
+    validate_code: true
+    # Block dangerous imports
+    blocked_imports:
+      - subprocess
+      - os.system
+      - eval
+      - exec
+      - pickle
+    # Require manifest.yaml
+    require_manifest: true
+
+# =============================================================================
+# DATA QUALITY & VALIDATION
+# =============================================================================
+validation:
+  # Enable automatic data validation
+  enabled: true
+  
+  # Duplicate detection
+  deduplication:
+    enabled: true
+    # Method: source_id (preferred) or hash
+    method: source_id
+    
+  # Anomaly detection
+  anomalies:
+    enabled: true
+    # Flag transactions above this amount (CNY)
+    large_transaction_threshold: 1000000
+    # Flag daily changes above this percentage
+    daily_change_threshold: 50
+
+# =============================================================================
+# IMPORT HISTORY
+# =============================================================================
+import_history:
+  # Keep import logs for this many days
+  retention_days: 90
+  
+  # Log level for imports (debug, info, warning, error)
+  log_level: info

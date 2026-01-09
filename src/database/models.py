@@ -603,3 +603,166 @@ class MarketDataNAV(Base):
     
     def __repr__(self):
         return f"<MarketDataNAV(asset={self.asset_id}, date={self.date}, nav={self.nav})>"
+
+
+# ============================================================================
+# AUTOMATED INTEGRATIONS MODELS
+# ============================================================================
+
+class ImportJob(Base):
+    """
+    Import job tracking - records sync operations from API integrations.
+    
+    Tracks each data import operation including source, timing, status,
+    and results for debugging and audit purposes.
+    """
+    __tablename__ = 'import_jobs'
+    
+    # Primary key
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # Job identification
+    job_id = Column(String(100), unique=True, nullable=False, index=True,
+                   comment="Unique job identifier (UUID)")
+    
+    # Source information
+    source_type = Column(String(50), nullable=False, index=True,
+                        comment="Type: broker, crypto, bank, market_data, plugin")
+    source_id = Column(String(100), nullable=False, index=True,
+                       comment="Specific source identifier (e.g., binance, schwab)")
+    account_id = Column(String(100), comment="Account being synced (if applicable)")
+    
+    # Timing
+    started_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    completed_at = Column(DateTime, comment="When job finished (success or failure)")
+    duration_seconds = Column(Numeric(10, 2), comment="Total duration")
+    
+    # Status
+    status = Column(String(20), default='running', nullable=False,
+                   comment="running, success, partial, failed, cancelled")
+    
+    # Results
+    records_fetched = Column(Integer, default=0, comment="Records received from source")
+    records_imported = Column(Integer, default=0, comment="New records imported")
+    records_updated = Column(Integer, default=0, comment="Existing records updated")
+    records_skipped = Column(Integer, default=0, comment="Duplicates or invalid records")
+    
+    # Error handling
+    error_message = Column(Text, comment="Error message if failed")
+    error_details = Column(JSON, comment="Full error details and stack trace")
+    
+    # Metadata
+    metadata_json = Column(JSON, comment="Additional job metadata (date range, options, etc.)")
+    triggered_by = Column(String(50), default='manual', comment="manual, scheduled, webhook")
+    
+    # Indexes
+    __table_args__ = (
+        Index('idx_import_jobs_source_status', 'source_type', 'source_id', 'status'),
+        Index('idx_import_jobs_started_at', 'started_at'),
+    )
+    
+    def __repr__(self):
+        return f"<ImportJob(id={self.job_id}, source={self.source_id}, status={self.status}, imported={self.records_imported})>"
+
+
+class PluginConfig(Base):
+    """
+    Plugin configuration - stores plugin credentials and settings.
+    
+    Credentials are stored encrypted. The config_json field contains
+    all authentication details needed to connect to the data source.
+    """
+    __tablename__ = 'plugin_configs'
+    
+    # Primary key
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # Plugin identification
+    plugin_id = Column(String(100), unique=True, nullable=False, index=True,
+                      comment="Unique plugin identifier (e.g., icbc, chase)")
+    plugin_name = Column(String(200), comment="Display name for the plugin")
+    plugin_version = Column(String(20), comment="Installed plugin version")
+    
+    # Configuration (encrypted in application layer)
+    config_json = Column(Text, comment="Encrypted JSON configuration with credentials")
+    
+    # Status
+    enabled = Column(Boolean, default=False, nullable=False,
+                    comment="Whether plugin is enabled for sync")
+    
+    # Sync settings
+    sync_frequency = Column(String(50), default='daily',
+                           comment="Sync frequency: manual, hourly, daily, weekly")
+    last_sync = Column(DateTime, comment="Last successful sync timestamp")
+    next_sync = Column(DateTime, comment="Scheduled next sync time")
+    
+    # Health tracking
+    consecutive_failures = Column(Integer, default=0,
+                                 comment="Number of consecutive sync failures")
+    last_error = Column(Text, comment="Last error message")
+    
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_by = Column(String(50), default='system')
+    
+    def __repr__(self):
+        return f"<PluginConfig(plugin={self.plugin_id}, enabled={self.enabled}, last_sync={self.last_sync})>"
+
+
+class DataSourceMetadata(Base):
+    """
+    Data source metadata - tracks data lineage and quality.
+    
+    Records where each piece of data came from and its quality metrics
+    to help with reconciliation and debugging.
+    """
+    __tablename__ = 'data_source_metadata'
+    
+    # Primary key
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    
+    # Source identification
+    source_type = Column(String(50), nullable=False, index=True,
+                        comment="Type: broker, crypto, bank, market_data, csv, manual")
+    source_id = Column(String(100), nullable=False, index=True,
+                       comment="Specific source identifier")
+    
+    # Asset linkage
+    asset_id = Column(String(100), ForeignKey('assets.asset_id'), index=True,
+                     comment="Associated asset (if applicable)")
+    
+    # Data tracking
+    data_type = Column(String(50), comment="holdings, transactions, prices, balances")
+    last_update = Column(DateTime, comment="Last time data was updated from this source")
+    record_count = Column(Integer, comment="Number of records from this source")
+    
+    # Quality metrics
+    data_quality_score = Column(Numeric(5, 2), comment="Quality score 0-100")
+    completeness_score = Column(Numeric(5, 2), comment="Data completeness 0-100")
+    freshness_hours = Column(Numeric(10, 2), comment="Hours since last update")
+    
+    # Validation
+    last_validated = Column(DateTime, comment="Last validation check")
+    validation_status = Column(String(20), comment="valid, warning, error")
+    validation_notes = Column(Text, comment="Validation issues found")
+    
+    # Flexible metadata
+    metadata_json = Column(JSON, comment="Source-specific metadata")
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    
+    # Relationships
+    asset = relationship("Asset", backref="data_sources")
+    
+    # Indexes and constraints
+    __table_args__ = (
+        UniqueConstraint('source_type', 'source_id', 'asset_id', 'data_type',
+                        name='uq_data_source_asset'),
+        Index('idx_data_source_type_id', 'source_type', 'source_id'),
+    )
+    
+    def __repr__(self):
+        return f"<DataSourceMetadata(source={self.source_id}, asset={self.asset_id}, quality={self.data_quality_score})>"
