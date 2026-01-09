@@ -3,6 +3,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from . import auth_bp
 from src.web_app.auth_manager import User, verify_user
 
+
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:

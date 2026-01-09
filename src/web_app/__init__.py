@@ -1,5 +1,10 @@
 import os
 import logging
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv(override=True)
+
 from flask import Flask, redirect, url_for, request as flask_request
 from flask_cors import CORS
 from flask_login import LoginManager

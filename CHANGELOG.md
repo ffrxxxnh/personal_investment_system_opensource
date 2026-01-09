@@ -56,8 +56,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `troubleshooting.md`: Common issues and solutions
     - Setup guides for Binance, Coinbase, IBKR, Tiingo
   - **Tests** (`tests/connectors/`)
-    - 82 unit tests covering base connector, utilities, and plugin framework
-    - 100% test pass rate
+- 100% test pass rate
+
+### Fixed
+
+- **Foreign Key Constraint Error**: Fixed valid demo data ingest by pre-registering synthetic assets (Cash, Deposits, Property) in `db_sync.py`.
+- **Authentication**: Resolved "Silent Failure" on login by enforcing `.env` config precedence and adding `SECRET_KEY` for session stability.
+- **Documentation**: Added missing default login credentials (`admin`/`admin`) to README and Docker guides.
 
 ## [1.1.0] - 2026-01-09
 

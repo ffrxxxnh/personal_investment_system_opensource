@@ -54,6 +54,7 @@ python scripts/generate_demo_data.py --seed 42
 python -m flask --app src.web_app.app run
 ```
 
+> **Login**: `admin` / `admin` (Configured in `.env`)  
 > Explore your new dashboard at `http://localhost:5000`
 
 ---

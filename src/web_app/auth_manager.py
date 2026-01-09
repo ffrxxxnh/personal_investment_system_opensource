@@ -26,7 +26,7 @@ def verify_user(username: str, password: str) -> bool:
     """
     expected_user = os.environ.get('WEB_ADMIN_USER', 'admin')
     expected_pass = os.environ.get('WEB_ADMIN_PASS')
-
+    
     if not expected_pass:
         # No password configured - reject all logins for security
         import logging

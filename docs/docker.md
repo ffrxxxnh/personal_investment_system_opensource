@@ -11,9 +11,11 @@ cd personal_investment_system
 docker-compose up -d
 ```
 
-**Access**: http://localhost:5000
+**Access**: <http://localhost:5000>
+**Login**: `admin` / `admin`
 
 On first launch, choose:
+
 1. **Demo Mode** - Explore with sample data
 2. **Upload Data** - Import your CSV/Excel files
 3. **Skip** - Start with empty dashboard
@@ -159,5 +161,5 @@ docker system prune -a        # Deep clean (reclaims GBs)
 
 ## Support
 
-- Issues: https://github.com/yourusername/personal_investment_system/issues
+- Issues: <https://github.com/yourusername/personal_investment_system/issues>
 - Docs: See `docs/` folder

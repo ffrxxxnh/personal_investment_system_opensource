@@ -169,6 +169,37 @@ def sync_assets_to_db():
             except Exception as e:
                 logger.error(f"Error checking Gold assets: {e}")
         
+        # --- 5. Sync Balance Sheet Synthetic Assets ---
+        # These asset_ids are referenced by HoldingsCalculator.bs_mapping
+        # They MUST exist in the assets table before sync_full_holdings_snapshot() runs
+        logger.info("Syncing Balance Sheet Synthetic Assets to DB...")
+        SYNTHETIC_ASSETS = {
+            # Cash and Deposits (from holdings_calculator.bs_mapping)
+            'Cash_CNY': ('Cash (CNY)', 'Cash'),
+            'Bank_Account_A': ('Bank Account A', 'Deposit'),
+            'Deposit_BOB_CNY': ('BOB Deposit (CNY)', 'Deposit'),
+            'Deposit_CMB_CNY': ('CMB Deposit (CNY)', 'Deposit'),
+            'Deposit_BOC_USD': ('BOC Deposit (USD)', 'Deposit'),
+            'Deposit_Chase_USD': ('Chase Deposit (USD)', 'Deposit'),
+            'Deposit_Discover_USD': ('Discover Deposit (USD)', 'Deposit'),
+            # Other Balance Sheet Assets
+            'BankWealth_招行': ('Bank Wealth Product', 'Bank_Product'),
+            'Pension_Personal': ('Personal Pension', 'Pension'),
+            'Property_Residential_A': ('Residential Property A', 'Property'),
+        }
+        for asset_id, (asset_name, asset_type) in SYNTHETIC_ASSETS.items():
+            existing = session.query(Asset).filter_by(asset_id=asset_id).first()
+            if not existing:
+                logger.info(f"Adding Synthetic Asset to DB: {asset_id}")
+                new_asset = Asset(
+                    asset_id=asset_id,
+                    asset_name=asset_name,
+                    asset_type=asset_type,
+                    is_active=True
+                )
+                session.add(new_asset)
+                added_count += 1
+        
         if added_count > 0:
             session.commit()
             logger.info(f"✅ Successfully synced {added_count} new assets to the database.")
@@ -458,6 +489,31 @@ def sync_full_holdings_snapshot():
         
         # Reset index to access Asset_ID easily if it's in index
         df_reset = metrics_df.reset_index()
+        
+        # 2.5 CRITICAL: Ensure ALL assets exist in the database BEFORE inserting holdings
+        # This prevents FK constraint failures for dynamically generated asset IDs (e.g., Ins_*)
+        assets_registered = 0
+        for _, row in df_reset.iterrows():
+            asset_id = row.get('Asset_ID')
+            if not asset_id:
+                continue
+            asset_id = str(asset_id)
+            existing_asset = session.query(Asset).filter_by(asset_id=asset_id).first()
+            if not existing_asset:
+                asset_name = str(row.get('Asset_Name', asset_id))
+                asset_type = str(row.get('Asset_Type_Raw', 'Unknown'))
+                logger.info(f"Auto-registering missing asset: {asset_id} ({asset_name})")
+                new_asset = Asset(
+                    asset_id=asset_id,
+                    asset_name=asset_name,
+                    asset_type=asset_type,
+                    is_active=True
+                )
+                session.add(new_asset)
+                assets_registered += 1
+        if assets_registered > 0:
+            session.flush()  # Flush to ensure assets are available for FK reference
+            logger.info(f"✅ Auto-registered {assets_registered} missing assets")
         
         for _, row in df_reset.iterrows():
             asset_id = row.get('Asset_ID')
