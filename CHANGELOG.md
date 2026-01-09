@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Docker One-Click Deployment**: Zero-friction setup for non-technical users
+  - Multi-stage Dockerfile with optimized image size (~500MB)
+  - `docker-compose.yml` for single-command deployment
+  - `docker-entrypoint.sh` with auto-initialization and first-run detection
+  - Environment variable configuration (SECRET_KEY, FLASK_HOST, FLASK_PORT, etc.)
+  - Health check endpoints (`/health`, `/api/health`) for container orchestration
+  - `DOCKER_QUICKSTART.md` with usage instructions
+  - Development plan documentation in `docs/docker-deployment/`
+
 - **Internationalization (I18n)**: Implemented full localization support using Flask-Babel.
   - Added language switcher (English/Chinese) in navigation bar.
   - Localized "Portfolio Report" template and key backend report builders.
@@ -36,6 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Flask App Docker Compatibility**:
+  - `run-web` command now accepts `--host` parameter for Docker binding
+  - SECRET_KEY configurable via environment variable (auto-generated if not set)
+  - Environment variable fallbacks for FLASK_HOST, FLASK_PORT, FLASK_DEBUG
 - **Demo Data Generator Overhaul**: Complete rewrite for chart compatibility and global appeal
   - Balance sheet columns now use `Asset_*`/`Liability_*` prefixes for calculator compatibility
   - Cash flow columns now use `Income_*`/`Expense_*`/`Outflow_Invest_*` prefixes

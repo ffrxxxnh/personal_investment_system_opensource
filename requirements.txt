@@ -26,3 +26,4 @@ flask-login
 python-dotenv>=1.0.0
 Flask-Babel>=3.0.0
 Babel>=2.12.0
+psutil>=5.9.0

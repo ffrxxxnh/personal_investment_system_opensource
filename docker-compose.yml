@@ -1,0 +1,65 @@
+# =============================================================================
+# Personal Investment System - Docker Compose Configuration
+# One-command deployment: docker-compose up -d
+# =============================================================================
+
+services:
+  pis-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: personal-investment-system:latest
+    container_name: pis-web
+    restart: unless-stopped
+
+    ports:
+      - "${PIS_PORT:-5000}:5000"
+
+    volumes:
+      # Persistent data - user uploads, database, cache
+      - pis-data:/app/data
+      # Demo data - read-only mount from host
+      - ./data/demo_source:/app/data/demo_source:ro
+      # Configuration - mount for customization
+      - ./config:/app/config:ro
+      # Logs - accessible from host
+      - ./logs:/app/logs
+      # Reports - accessible from host
+      - ./output:/app/output
+      # Translations - for i18n support
+      - ./translations:/app/translations:ro
+
+    environment:
+      # Application
+      - APP_ENV=${APP_ENV:-production}
+      - SECRET_KEY=${SECRET_KEY:-}
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5000
+
+      # Database
+      - DB_PATH=/app/data/investment_system.db
+      - DATA_DIR=/app/data
+
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+      # Demo mode (set to 'true' to force demo mode)
+      - DEMO_MODE=${DEMO_MODE:-false}
+
+      # Timezone
+      - TZ=${TZ:-UTC}
+
+      # Optional: External API keys
+      - FRED_API_KEY=${FRED_API_KEY:-}
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+# Named volume for data persistence
+volumes:
+  pis-data:
+    name: pis-investment-data

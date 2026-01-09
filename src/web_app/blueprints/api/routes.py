@@ -49,11 +49,41 @@ def list_assets():
 
 @api_bp.route('/health', methods=['GET'])
 def health_check():
-	"""Simple health check endpoint."""
-	return jsonify({
-		'status': 'healthy',
-		'timestamp': datetime.now().isoformat()
-	})
+    """
+    Health check endpoint for Docker/Kubernetes.
+
+    Returns 200 if application is healthy, 503 if degraded.
+    No authentication required for health checks.
+    """
+    import os
+
+    health_status = {
+        'status': 'healthy',
+        'app': 'Personal Investment System',
+        'version': '1.0.0',
+        'environment': os.environ.get('APP_ENV', 'development'),
+        'system_state': os.environ.get('SYSTEM_STATE', 'unknown'),
+        'timestamp': datetime.now().isoformat()
+    }
+
+    # Check database connectivity
+    try:
+        from src.data_manager.manager import DataManager
+        dm = DataManager()
+        # Simple check - verify config path is set
+        if dm.config_path:
+            health_status['database'] = 'connected'
+        else:
+            health_status['database'] = 'no_config'
+    except Exception as e:
+        health_status['database'] = f'error: {str(e)[:50]}'
+        health_status['status'] = 'degraded'
+
+    # Check if demo mode
+    health_status['demo_mode'] = os.environ.get('DEMO_MODE', 'false').lower() == 'true'
+
+    status_code = 200 if health_status['status'] == 'healthy' else 503
+    return jsonify(health_status), status_code
 
 
 @api_bp.route('/unified_analysis', methods=['GET'])

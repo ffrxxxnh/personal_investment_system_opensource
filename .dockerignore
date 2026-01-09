@@ -1,0 +1,94 @@
+# =============================================================================
+# Docker Build Ignore File
+# Excludes unnecessary files from Docker build context
+# =============================================================================
+
+# Git
+.git
+.gitignore
+.github
+
+# Python bytecode and virtual environments
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.env
+.venv
+env/
+venv/
+ENV/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.history/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+tests/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Logs and output (regenerated at runtime)
+logs/*
+!logs/.gitkeep
+output/*
+!output/.gitkeep
+
+# Data files (user-specific, mounted via volume)
+data/user_uploads/*
+data/cache/*
+data/historical_snapshots/*
+data/cost_basis_lots/*
+data/*.db
+data/*.db-wal
+data/*.db-shm
+# Keep demo data for first-run experience
+!data/demo_source/
+
+# Documentation (not needed in production image)
+docs/
+*.md
+!README.md
+
+# Jupyter notebooks
+notebooks/
+*.ipynb
+
+# Development files
+development_log.md
+project-status.md
+architecture.md
+CHANGELOG.md
+
+# Claude/AI assistant files
+.claude/
+CLAUDE.md
+
+# macOS files
+.DS_Store
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+
+# Alembic migrations (not needed if using fresh DB)
+# alembic/
+
+# Docker files themselves (prevent recursion)
+Dockerfile*
+docker-compose*.yml
+.dockerignore

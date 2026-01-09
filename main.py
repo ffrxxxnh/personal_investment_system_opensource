@@ -623,23 +623,35 @@ def generate_report(output_dir):
 
 
 @cli.command(name='run-web')
-@click.option('--port', default=5000, help='Port to run the web server on')
+@click.option('--host', default=None, help='Host to bind to (default: 127.0.0.1, or FLASK_HOST env)')
+@click.option('--port', default=None, type=int, help='Port to run the web server on (default: 5000, or FLASK_PORT env)')
 @click.option('--debug', is_flag=True, help='Run in debug mode')
-def run_web(port, debug):
+def run_web(host, port, debug):
     """
     Launch the Web Management Interface.
-    
+
     Starts the Flask application for managing transactions, assets, and viewing the dashboard.
+    For Docker deployment, use --host 0.0.0.0 or set FLASK_HOST environment variable.
     """
     try:
         from src.web_app import create_app
-        
-        click.echo(f"🚀 Starting Web Management Interface on port {port}...")
-        click.echo(f"📊 Dashboard available at: http://127.0.0.1:{port}/dashboard/")
-        
+
+        # Use environment variables as fallback for Docker compatibility
+        if host is None:
+            host = os.environ.get('FLASK_HOST', '127.0.0.1')
+        if port is None:
+            port = int(os.environ.get('FLASK_PORT', '5000'))
+
+        # Set debug from environment if not specified via flag
+        if not debug:
+            debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
+
+        click.echo(f"🚀 Starting Web Management Interface on {host}:{port}...")
+        click.echo(f"📊 Dashboard available at: http://{host}:{port}/dashboard/")
+
         app = create_app()
-        app.run(host='127.0.0.1', port=port, debug=debug)
-        
+        app.run(host=host, port=port, debug=debug)
+
     except Exception as e:
         click.echo(f"❌ Failed to start web app: {e}", err=True)
         sys.exit(1)

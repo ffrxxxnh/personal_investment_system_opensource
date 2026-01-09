@@ -22,8 +22,19 @@ def create_app(config_object=None):
     logging.getLogger('src').setLevel(logging.INFO)
     
     # Configure app
+    # Use SECRET_KEY from environment variable, fallback to dev key
+    import secrets
+    secret_key = os.environ.get('SECRET_KEY')
+    if not secret_key:
+        if os.environ.get('APP_ENV') == 'production':
+            app.logger.warning(
+                "SECRET_KEY not set in production! "
+                "Sessions will not persist across restarts."
+            )
+        secret_key = secrets.token_hex(32)
+
     app.config.from_mapping(
-        SECRET_KEY='dev-secret-key-change-in-production',
+        SECRET_KEY=secret_key,
         # Point to the translations directory at project root
         BABEL_TRANSLATION_DIRECTORIES=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'translations')
     )
@@ -109,7 +120,18 @@ def create_app(config_object=None):
 
     from .blueprints.simulation import simulation_bp
     app.register_blueprint(simulation_bp, url_prefix='/reports/simulation')
-    
+
+    # Root-level health check for Docker (no authentication required)
+    @app.route('/health')
+    def root_health():
+        """
+        Root-level health check for Docker/Kubernetes.
+
+        Simple endpoint that returns 200 if the application is running.
+        Use /api/health for more detailed health status.
+        """
+        return {'status': 'healthy', 'app': 'Personal Investment System'}, 200
+
     return app
 
 
