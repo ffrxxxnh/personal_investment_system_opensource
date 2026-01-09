@@ -64,6 +64,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Authentication**: Resolved "Silent Failure" on login by enforcing `.env` config precedence and adding `SECRET_KEY` for session stability.
 - **Documentation**: Added missing default login credentials (`admin`/`admin`) to README and Docker guides.
 
+### Known Issues
+
+- **Report Generation Performance**: Reports take minutes to load with demo data when expected time is 2-3 seconds. Logged for next phase investigation. See `docs/issues/REPORT_PERFORMANCE.md`.
+
 ## [1.1.0] - 2026-01-09
 
 ### Added
