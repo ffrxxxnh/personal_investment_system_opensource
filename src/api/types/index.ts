@@ -6,3 +6,4 @@
 
 export * from './portfolio';
 export * from './reports';
+export * from './wealth';

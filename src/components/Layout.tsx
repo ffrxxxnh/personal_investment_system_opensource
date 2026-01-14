@@ -30,12 +30,13 @@ const Layout: React.FC = () => {
 
     const mainNavItems = [
         { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
+        { label: 'Wealth', icon: Wallet, path: '/wealth' },
         { label: 'Data Workbench', icon: Database, path: '/workbench' },
-        { label: 'Logic Studio', icon: Database, path: '/logic-studio' },
+        { label: 'Logic Studio', icon: Settings, path: '/logic-studio' },
     ];
 
     const analysisNavItems = [
-        { label: 'Portfolio', icon: Wallet, path: '/portfolio' },
+        { label: 'Portfolio', icon: BarChart3, path: '/portfolio' },
         { label: 'Cash Flow', icon: DollarSign, path: '/cashflow' },
         { label: 'Compass', icon: Compass, path: '/compass' },
         { label: 'Performance', icon: TrendingUp, path: '/performance' },
@@ -58,8 +59,8 @@ const Layout: React.FC = () => {
                     className={({ isActive }) => cn(
                         "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                         isActive
-                            ? "bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-200"
-                            : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                            ? "bg-blue-50 text-blue-600 shadow-sm ring-1 ring-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:ring-blue-800"
+                            : "text-gray-500 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-100"
                     )}
                 >
                     <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
@@ -70,9 +71,9 @@ const Layout: React.FC = () => {
     };
 
     return (
-        <div className="flex h-screen bg-gray-50 font-sans text-gray-900">
+        <div className="flex h-screen bg-gray-50 font-sans text-gray-900 dark:bg-gray-900 dark:text-gray-100">
             {/* Sidebar */}
-            <aside className="fixed left-0 top-0 z-50 flex h-full w-64 flex-col border-r border-gray-200 bg-white shadow-sm transition-transform duration-300">
+            <aside className="fixed left-0 top-0 z-50 flex h-full w-64 flex-col border-r border-gray-200 bg-white shadow-sm transition-transform duration-300 dark:border-gray-700 dark:bg-gray-800">
                 <div className="flex items-center gap-3 p-6">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-200">
                         <TrendingUp size={24} strokeWidth={2.5} />
@@ -86,7 +87,7 @@ const Layout: React.FC = () => {
                 <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-4">
                     {/* Main Section */}
                     <div>
-                        <h3 className="mb-3 px-3 text-xs font-bold uppercase tracking-widest text-gray-400">
+                        <h3 className="mb-3 px-3 text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
                             Main
                         </h3>
                         <ul className="space-y-1">
@@ -96,7 +97,7 @@ const Layout: React.FC = () => {
 
                     {/* Analysis Section */}
                     <div>
-                        <h3 className="mb-3 px-3 text-xs font-bold uppercase tracking-widest text-gray-400">
+                        <h3 className="mb-3 px-3 text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
                             Analysis
                         </h3>
                         <ul className="space-y-1">
@@ -106,37 +107,30 @@ const Layout: React.FC = () => {
 
                     {/* System Section */}
                     <div>
-                        <h3 className="mb-3 px-3 text-xs font-bold uppercase tracking-widest text-gray-400">
+                        <h3 className="mb-3 px-3 text-xs font-bold uppercase tracking-widest text-gray-400 dark:text-gray-500">
                             System
                         </h3>
                         <ul className="space-y-1">
-                            <li>
-                                <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 transition-all duration-200 hover:bg-gray-50 hover:text-gray-900">
-                                    <Plug size={20} />
-                                    Integrations
-                                </button>
-                            </li>
-                            <li>
-                                <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 transition-all duration-200 hover:bg-gray-50 hover:text-gray-900">
-                                    <Heart size={20} />
-                                    Health
-                                </button>
-                            </li>
+                            {[
+                                { label: 'Settings', icon: Settings, path: '/settings' },
+                                { label: 'Integrations', icon: Plug, path: '/integrations' },
+                                { label: 'Health', icon: Heart, path: '/health' },
+                            ].map(renderNavItem)}
                         </ul>
                     </div>
                 </nav>
 
                 {/* User Profile Section */}
-                <div className="border-t border-gray-100 p-4">
-                    <div className="flex items-center gap-3 rounded-xl bg-gray-50 p-3 border border-gray-100">
+                <div className="border-t border-gray-100 p-4 dark:border-gray-700">
+                    <div className="flex items-center gap-3 rounded-xl bg-gray-50 p-3 border border-gray-100 dark:bg-gray-700 dark:border-gray-600">
                         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-sm">
                             <User size={18} />
                         </div>
                         <div className="flex-1 overflow-hidden">
-                            <p className="truncate text-xs font-bold text-gray-900">
+                            <p className="truncate text-xs font-bold text-gray-900 dark:text-gray-100">
                                 {user?.username || 'User'}
                             </p>
-                            <p className="truncate text-[10px] font-medium text-gray-500">Pro Plan</p>
+                            <p className="truncate text-[10px] font-medium text-gray-500 dark:text-gray-400">Pro Plan</p>
                         </div>
                         <button
                             onClick={handleLogout}
@@ -155,7 +149,7 @@ const Layout: React.FC = () => {
             </aside>
 
             {/* Main Content */}
-            <main className="ml-64 min-h-screen w-full bg-gray-50">
+            <main className="ml-64 min-h-screen w-full bg-gray-50 dark:bg-gray-900">
                 <Outlet />
             </main>
         </div>

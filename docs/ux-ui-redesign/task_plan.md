@@ -1,6 +1,6 @@
 # Feature: UX/UI Redesign
 
-> **Last Updated**: 2026-01-13
+> **Last Updated**: 2026-01-14
 > **Full Plan**: See [development-plan.md](./development-plan.md) for detailed implementation guide.
 
 ## Overview
@@ -16,14 +16,14 @@ Complete redesign of the Personal Investment System UI following `docs/design-fr
 | Phase | Name | Status | Description |
 |-------|------|--------|-------------|
 | 1-4 | Design System Foundation | ✅ Complete | CSS tokens, Jinja macros, base template |
-| 5 | Polish & Accessibility | ⏸️ Deferred | Will complete in new Phase 5 |
+| 5 | Polish & Accessibility | ⏸️ Deferred | WCAG audit pending |
 | 6 | Report Performance | ✅ Complete | SARIMA disabled, reports load fast |
 | 7 | SPA Refactor | ✅ Complete | React/Vite project structure |
 | 8 | API Integration | ✅ Complete | API client, types, hooks, Dashboard wired |
-| 9 | Authentication | 🔜 Next | AuthContext, Login, ProtectedRoute |
+| 9 | Authentication | ✅ Complete | AuthContext, Login, ProtectedRoute, PreferencesContext |
 | 10 | Reports Migration | ✅ Complete | Portfolio, CashFlow, Compass pages |
-| 11 | Remaining Pages | 🔄 In Progress | Simulation (Done), Performance (New), Wealth/Logic (Pending) |
-| 12 | Final Polish | 📋 Planned | Dark mode, a11y, deprecate templates |
+| 11 | Remaining Pages | ✅ Complete | Wealth, Settings, Simulation, Performance, Logic Studio |
+| 12 | Final Polish | ✅ Complete | Dark mode, code splitting, template deprecation |
 
 ---
 
@@ -72,17 +72,18 @@ Complete redesign of the Personal Investment System UI following `docs/design-fr
 - [x] Added loading spinner, error states, refresh button
 - [x] Build verified with no TypeScript errors
 
-### Phase 9: Authentication & State 🔜 NEXT
+### Phase 9: Authentication & State ✅ (2026-01-14)
 
-- [ ] Create `src/contexts/AuthContext.tsx`
+- [x] Create `src/contexts/AuthContext.tsx`
   - Manages user state, token, loading
   - Exposes `login()`, `logout()`, `isAuthenticated`
-- [ ] Create `src/contexts/PreferencesContext.tsx`
-  - Theme preference (light/dark)
-  - Currency display preference
-- [ ] Create `src/components/ProtectedRoute.tsx`
+- [x] Create `src/contexts/PreferencesContext.tsx`
+  - Theme preference (light/dark/system)
+  - Currency, language, date format preferences
+  - localStorage persistence
+- [x] Create `src/components/ProtectedRoute.tsx`
   - Redirects unauthenticated users to `/login`
-- [ ] Create `src/pages/Login.tsx`
+- [x] Create `src/pages/Login.tsx`
   - Form with validation
   - Connects to Flask `/auth/login`
 
@@ -101,20 +102,27 @@ Complete redesign of the Personal Investment System UI following `docs/design-fr
   - Gains Analysis (Realized vs Unrealized)
   - Asset Performance Scorecard
 
-### Phase 11: Remaining Pages 🔄
+### Phase 11: Remaining Pages ✅ (2026-01-14)
 
-- [ ] Wealth Overview (`/wealth`)
+- [x] Wealth Overview (`/wealth`) - 3-tab dashboard with Net Worth, Cash Flow, Expenses
 - [x] Logic Studio (`/logic-studio`) - React SPA with tabs: Rules, Tiers, Profiles
-- [x] Simulation (`/reports/simulation`)
-- [ ] Settings (`/settings`)
+- [x] Simulation (`/reports/simulation`) - Monte Carlo with confidence intervals
+- [x] Settings (`/settings`) - Display preferences, analysis params, integrations
+- [x] New hooks: `useWealth.ts`, new types: `wealth.ts`
 
-### Phase 12: Final Polish 📋
+### Phase 12: Final Polish ✅ (2026-01-14)
 
-- [ ] Remove Tailwind CDN from Flask templates
-- [ ] Implement dark mode toggle
-- [ ] WCAG 2.1 AA accessibility audit
-- [ ] Code split with React.lazy()
-- [ ] Deprecate unused Flask templates
+- [x] Implement dark mode toggle
+  - PreferencesContext with localStorage
+  - Tailwind `darkMode: 'class'` enabled
+  - Layout.tsx updated with dark mode variants
+- [x] Code split with React.lazy()
+  - Main chunk reduced from 1037KB to 235KB
+  - Pages loaded on-demand with Suspense fallback
+- [x] Deprecate unused Flask templates
+  - Moved 21 templates to `templates/deprecated/`
+  - Kept error pages, integrations, onboarding active
+- [ ] WCAG 2.1 AA accessibility audit (deferred)
 
 ---
 
@@ -135,6 +143,11 @@ Complete redesign of the Personal Investment System UI following `docs/design-fr
 | 2026-01-13 | **Reports Migration Complete** (Phase 10) | Remaining Pages |
 | 2026-01-13 | **Simulation & Performance** (Phase 11) | Wealth & Logic Studio |
 | 2026-01-13 | **Logic Studio React SPA** complete (Rules, Tiers, Profiles) | Stage & Commit |
+| 2026-01-14 | **Wealth Overview** (`/wealth`) - 3-tab dashboard complete | Settings page |
+| 2026-01-14 | **Settings page** (`/settings`) - Preferences with localStorage | Dark mode |
+| 2026-01-14 | **Dark mode toggle** - PreferencesContext + Tailwind config | Code splitting |
+| 2026-01-14 | **Code splitting** - React.lazy(), chunk size 235KB | Template deprecation |
+| 2026-01-14 | **Template deprecation** - 21 templates moved to deprecated/ | **Phase 12 Complete** |
 
 ---
 

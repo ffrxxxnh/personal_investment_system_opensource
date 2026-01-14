@@ -86,3 +86,4 @@ docs/_archive/
 # Personal data backup (not for open source)
 data/personal_backup/
 debug_log.txt
+node_modules/

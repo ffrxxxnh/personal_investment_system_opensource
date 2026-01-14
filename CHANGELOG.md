@@ -41,6 +41,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Logic Studio** (`/logic-studio`): React SPA implementation with tabbed interface for Classification Rules, Strategy Tiers, and Risk Profiles. Includes Add Rule modal, tier descriptions, and allocation sliders with 100% validation.
   - **Design System Enforcement**: Strict adherence to SunnRayy palette (Gray scale, Blue primary, Gold for Equity/Gains).
 
+- **Wealth Dashboard** (`/wealth`): Complete wealth overview with 3-tab navigation.
+  - Net Worth & Health tab: Net worth trend chart, asset allocation pie, financial health ratios.
+  - Cash Flow tab: Income vs expenses bar charts, net cash flow trend.
+  - Expenses tab: Expense breakdown pie chart, efficiency analysis with progress bars.
+  - YTD KPI cards with Year-over-Year comparison.
+  - New hooks: `useWealthDashboard()`, `useWealthParity()`.
+  - TypeScript types for wealth API responses.
+
+- **Settings Page** (`/settings`): User preferences management with localStorage persistence.
+  - Display preferences: Theme (light/dark/system), Language (en/zh), Currency (USD/CNY), Date format.
+  - Analysis parameters section (read-only view of config/settings.yaml values).
+  - Data integration settings with sync frequency and auto-sync toggles.
+  - About section with version information.
+
+- **Dark Mode Support**: Full dark mode implementation across React SPA.
+  - PreferencesContext with theme state management and localStorage persistence.
+  - Tailwind CSS `darkMode: 'class'` configuration.
+  - Layout component updated with dark mode variants for sidebar, navigation, and content areas.
+  - System theme preference detection and automatic switching.
+
+- **Code Splitting**: Performance optimization with React.lazy() and Suspense.
+  - All page components lazy-loaded on-demand.
+  - Main JavaScript chunk reduced from 1037KB to 235KB.
+  - Loading spinner fallback during chunk loading.
+
+### Changed
+
+- **Template Deprecation**: Moved 21 Flask Jinja2 templates to `templates/deprecated/` folder.
+  - Deprecated: dashboard, data_workbench, logic_studio, reports, wealth templates.
+  - Kept active: error pages (404, 500), integrations, onboarding, auth, transactions.
+  - Added README.md documenting deprecation with React replacement mapping.
+
 ### Fixed
 
 - **Portfolio Report Charts**: Resolved `Chart is not defined` error by moving chart scripts to `{% block scripts %}` (loads after Chart.js library).

@@ -6,3 +6,4 @@
 
 export * from './usePortfolio';
 export * from './useReports';
+export * from './useWealth';
