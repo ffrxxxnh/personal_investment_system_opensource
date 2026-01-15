@@ -87,3 +87,7 @@ docs/_archive/
 data/personal_backup/
 debug_log.txt
 node_modules/
+
+# Playwright
+playwright-report/
+test-results/

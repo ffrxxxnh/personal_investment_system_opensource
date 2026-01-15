@@ -640,7 +640,7 @@ def run_web(host, port, debug):
         if host is None:
             host = os.environ.get('FLASK_HOST', '127.0.0.1')
         if port is None:
-            port = int(os.environ.get('FLASK_PORT', '5000'))
+            port = int(os.environ.get('FLASK_PORT', '5001'))
 
         # Set debug from environment if not specified via flag
         if not debug:
