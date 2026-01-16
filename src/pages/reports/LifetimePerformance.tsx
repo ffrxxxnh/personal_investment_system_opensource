@@ -7,8 +7,8 @@
  * 2. Asset Performance - Table view with individual asset track records
  */
 
-import React, { useState } from 'react';
-import { Download, Filter, Search, TrendingUp, BarChart3, Table } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Download, Filter, Search, TrendingUp, BarChart3, Table, RefreshCw, X } from 'lucide-react';
 import {
     BarChart,
     Bar,
@@ -17,56 +17,130 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    Legend,
     Cell,
 } from 'recharts';
-
-// Demo data for gains breakdown
-const GAINS_BREAKDOWN = [
-    { name: 'Realized Gains', value: 328698, color: '#22c55e' },
-    { name: 'Unrealized Gains', value: 97089, color: '#3b82f6' },
-];
-
-// Demo data for sub-class breakdown
-const SUBCLASS_DATA = [
-    { name: 'CN Equity', realized: 280000, unrealized: 45000 },
-    { name: 'US Equity', realized: 35000, unrealized: 28000 },
-    { name: 'HK ETF', realized: 8000, unrealized: 12000 },
-    { name: 'Unknown', realized: 2000, unrealized: 3000 },
-    { name: 'Bond', realized: 1500, unrealized: 2500 },
-    { name: 'Crypto', realized: 1200, unrealized: 4000 },
-    { name: 'Gold', realized: 500, unrealized: 1500 },
-    { name: 'Real Estate', realized: 498, unrealized: 1089 },
-];
-
-// Demo data for asset performance table
-const ASSET_DATA = [
-    { name: '易方达中证500ETF联接发起式A', class: '股票', period: '4y 7m', status: 'ACTIVE', invested: 198099, currentValue: 152567, profit: 87037, return: 43.94 },
-    { name: '景顺长城沪深300指数增强A', class: '股票', period: '7y 9m', status: 'ACTIVE', invested: 277833, currentValue: 256418, profit: 83689, return: 30.12 },
-    { name: 'Amazon RSU', class: '股票', period: '2y 3m', status: 'ACTIVE', invested: 459822, currentValue: 255679, profit: 83434, return: 18.14 },
-    { name: '申万菱信沪深300价值指数A', class: '股票', period: '6y 3m', status: 'CLOSED', invested: 178877, currentValue: 0, profit: 49764, return: 27.82 },
-    { name: 'ALPHABET INC CLASS A', class: '股票', period: '1m 22d', status: 'ACTIVE', invested: 27218, currentValue: 30061, profit: 2863, return: 10.52 },
-    { name: 'INVESCO QQQ-U ETF', class: '股票', period: '3m 22d', status: 'CLOSED', invested: 28208, currentValue: 0, profit: 2239, return: 7.94 },
-    { name: 'Paper Gold (纸黄金)', class: '商品', period: '10m 13d', status: 'ACTIVE', invested: 229888, currentValue: 189838, profit: -13452, return: -5.85 },
-    { name: '博时标普500ETF联接A', class: '股票', period: '1y 11m', status: 'ACTIVE', invested: 19123, currentValue: 24011, profit: 4888, return: 25.56 },
-];
+import { useLifetimePerformance } from '../../hooks/useReports';
+import type { AssetPerformance } from '../../api/types/reports';
 
 type ViewType = 'gains' | 'table';
 
+interface FilterState {
+    status: 'all' | 'ACTIVE' | 'CLOSED';
+    assetClass: string;
+}
+
 const LifetimePerformance: React.FC = () => {
+    // API data hook
+    const { data, isLoading, error, refetch, isFetching } = useLifetimePerformance();
+
+    // UI state
     const [view, setView] = useState<ViewType>('gains');
     const [searchQuery, setSearchQuery] = useState('');
+    const [showFilter, setShowFilter] = useState(false);
+    const [filters, setFilters] = useState<FilterState>({ status: 'all', assetClass: 'all' });
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
-    const totalRealized = 328698;
-    const totalUnrealized = 97089;
+    // Extract data from API response
+    const totalRealized = data?.gains_summary?.total_realized || 0;
+    const totalUnrealized = data?.gains_summary?.total_unrealized || 0;
     const totalGains = totalRealized + totalUnrealized;
+    const weightedXirr = data?.gains_summary?.weighted_xirr || 0;
+    const gainsBreakdown = data?.gains_breakdown || [];
+    const subclassData = data?.subclass_breakdown || [];
+    const assetData = data?.asset_performance || [];
+    const activeAssets = data?.active_assets || 0;
+    const totalAssets = data?.total_assets || 0;
 
-    const filteredAssets = ASSET_DATA.filter(asset =>
-        asset.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Get unique asset classes for filter dropdown
+    const assetClasses = useMemo(() => {
+        const classes = new Set(assetData.map((a: AssetPerformance) => a.asset_class));
+        return ['all', ...Array.from(classes)];
+    }, [assetData]);
 
-    const activeAssets = ASSET_DATA.filter(a => a.status === 'ACTIVE').length;
-    const totalAssets = ASSET_DATA.length;
+    // Filter assets based on search and filters
+    const filteredAssets = useMemo(() => {
+        return assetData.filter((asset: AssetPerformance) => {
+            const matchesSearch = asset.name.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesStatus = filters.status === 'all' || asset.status === filters.status;
+            const matchesClass = filters.assetClass === 'all' || asset.asset_class === filters.assetClass;
+            return matchesSearch && matchesStatus && matchesClass;
+        });
+    }, [assetData, searchQuery, filters]);
+
+    // Pagination
+    const totalPages = Math.ceil(filteredAssets.length / itemsPerPage);
+    const paginatedAssets = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredAssets.slice(start, start + itemsPerPage);
+    }, [filteredAssets, currentPage, itemsPerPage]);
+
+    // Reset to page 1 when filters change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [searchQuery, filters]);
+
+    // Export handler
+    const handleExport = () => {
+        const headers = ['Asset Name', 'Asset Class', 'Sub Class', 'Holding Period', 'Status', 'Total Invested', 'Current Value', 'Realized Gain', 'Unrealized Gain', 'Total Gain', 'Return %'];
+        const csvContent = [
+            headers.join(','),
+            ...filteredAssets.map((a: AssetPerformance) => [
+                `"${a.name}"`,
+                a.asset_class,
+                a.sub_class,
+                a.holding_period,
+                a.status,
+                a.total_invested,
+                a.current_value,
+                a.realized_gain,
+                a.unrealized_gain,
+                a.total_gain,
+                a.return_pct
+            ].join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `lifetime_performance_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className="flex h-[60vh] items-center justify-center">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
+                    <p className="text-sm font-medium text-gray-500">Loading performance data...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (error || !data) {
+        return (
+            <div className="flex h-[60vh] items-center justify-center">
+                <div className="text-center">
+                    <div className="mx-auto mb-4 rounded-full bg-red-100 p-4 w-16 h-16 flex items-center justify-center">
+                        <X className="h-8 w-8 text-red-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Unable to Load Data</h3>
+                    <p className="text-sm text-gray-500 mb-4">{error?.message || 'Failed to fetch performance data'}</p>
+                    <button
+                        onClick={() => refetch()}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-6 lg:p-8">
@@ -128,7 +202,7 @@ const LifetimePerformance: React.FC = () => {
                         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                             <h3 className="font-semibold text-gray-900 mb-4">Gains Breakdown</h3>
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={GAINS_BREAKDOWN} layout="horizontal">
+                                <BarChart data={gainsBreakdown} layout="horizontal">
                                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                                     <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} />
                                     <YAxis tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`} axisLine={false} />
@@ -137,7 +211,7 @@ const LifetimePerformance: React.FC = () => {
                                         formatter={(value: number) => [`¥${value.toLocaleString()}`, '']}
                                     />
                                     <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                                        {GAINS_BREAKDOWN.map((entry, index) => (
+                                        {gainsBreakdown.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={entry.color} />
                                         ))}
                                     </Bar>
@@ -161,7 +235,7 @@ const LifetimePerformance: React.FC = () => {
                                 </div>
                             </div>
                             <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={SUBCLASS_DATA}>
+                                <BarChart data={subclassData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                                     <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} angle={-45} textAnchor="end" height={80} />
                                     <YAxis tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(v) => `¥${(v / 1000).toFixed(0)}k`} axisLine={false} />
@@ -200,11 +274,25 @@ const LifetimePerformance: React.FC = () => {
                                     className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                                 />
                             </div>
-                            <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">
+                            <button
+                                onClick={() => refetch()}
+                                disabled={isFetching}
+                                className="p-2 text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                            >
+                                <RefreshCw size={16} className={isFetching ? 'animate-spin' : ''} />
+                            </button>
+                            <button
+                                onClick={() => setShowFilter(!showFilter)}
+                                className={`flex items-center gap-2 px-3 py-2 text-sm font-medium border rounded-lg transition-colors ${showFilter ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-gray-600 border-gray-200 hover:bg-gray-50'
+                                    }`}
+                            >
                                 <Filter size={16} />
                                 Filter
                             </button>
-                            <button className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                            <button
+                                onClick={handleExport}
+                                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                            >
                                 <Download size={16} />
                                 Export CSV
                             </button>
@@ -228,11 +316,11 @@ const LifetimePerformance: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 text-xs">
-                                    {filteredAssets.map((asset, i) => (
+                                    {paginatedAssets.map((asset: AssetPerformance, i: number) => (
                                         <tr key={i} className="hover:bg-gray-50 transition-colors">
                                             <td className="py-3 px-4 font-medium text-gray-900">{asset.name}</td>
-                                            <td className="py-3 px-4 text-gray-600">{asset.class}</td>
-                                            <td className="py-3 px-4 text-gray-600">{asset.period}</td>
+                                            <td className="py-3 px-4 text-gray-600">{asset.asset_class}</td>
+                                            <td className="py-3 px-4 text-gray-600">{asset.holding_period}</td>
                                             <td className="py-3 px-4 text-center">
                                                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${asset.status === 'ACTIVE'
                                                     ? 'bg-emerald-100 text-emerald-700'
@@ -241,17 +329,17 @@ const LifetimePerformance: React.FC = () => {
                                                     {asset.status}
                                                 </span>
                                             </td>
-                                            <td className="py-3 px-4 text-right font-mono text-gray-700">¥{asset.invested.toLocaleString()}</td>
+                                            <td className="py-3 px-4 text-right font-mono text-gray-700">¥{asset.total_invested.toLocaleString()}</td>
                                             <td className="py-3 px-4 text-right font-mono text-gray-700">
-                                                {asset.currentValue > 0 ? `¥${asset.currentValue.toLocaleString()}` : '—'}
+                                                {asset.current_value > 0 ? `¥${asset.current_value.toLocaleString()}` : '—'}
                                             </td>
-                                            <td className={`py-3 px-4 text-right font-mono font-semibold ${asset.profit >= 0 ? 'text-emerald-600' : 'text-red-600'
+                                            <td className={`py-3 px-4 text-right font-mono font-semibold ${asset.total_gain >= 0 ? 'text-emerald-600' : 'text-red-600'
                                                 }`}>
-                                                ¥{asset.profit.toLocaleString()}
+                                                ¥{asset.total_gain.toLocaleString()}
                                             </td>
-                                            <td className={`py-3 px-4 text-right font-semibold ${asset.return >= 0 ? 'text-emerald-600' : 'text-red-600'
+                                            <td className={`py-3 px-4 text-right font-semibold ${asset.return_pct >= 0 ? 'text-emerald-600' : 'text-red-600'
                                                 }`}>
-                                                {asset.return >= 0 ? '+' : ''}{asset.return.toFixed(2)}%
+                                                {asset.return_pct >= 0 ? '+' : ''}{asset.return_pct.toFixed(2)}%
                                             </td>
                                         </tr>
                                     ))}
@@ -259,13 +347,32 @@ const LifetimePerformance: React.FC = () => {
                             </table>
                         </div>
                         <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-                            <p className="text-sm text-gray-500">Showing 1 to {filteredAssets.length} of {totalAssets} assets</p>
+                            <p className="text-sm text-gray-500">
+                                Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredAssets.length)} to {Math.min(currentPage * itemsPerPage, filteredAssets.length)} of {filteredAssets.length} assets
+                            </p>
                             <div className="flex items-center gap-1">
-                                <button className="px-3 py-1 text-sm text-gray-400 hover:text-gray-600">&lt;</button>
-                                <button className="px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded">1</button>
-                                <button className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">2</button>
-                                <button className="px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded">3</button>
-                                <button className="px-3 py-1 text-sm text-gray-400 hover:text-gray-600">&gt;</button>
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-3 py-1 text-sm text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                                >&lt;</button>
+                                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(page => (
+                                    <button
+                                        key={page}
+                                        onClick={() => setCurrentPage(page)}
+                                        className={`px-3 py-1 text-sm rounded ${page === currentPage
+                                                ? 'font-medium text-white bg-blue-600'
+                                                : 'text-gray-600 hover:bg-gray-100'
+                                            }`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={currentPage === totalPages}
+                                    className="px-3 py-1 text-sm text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                                >&gt;</button>
                             </div>
                         </div>
                     </div>
@@ -279,7 +386,7 @@ const LifetimePerformance: React.FC = () => {
                         </div>
                         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Weighted XIRR</p>
-                            <p className="text-3xl font-bold text-blue-600">18.42%</p>
+                            <p className="text-3xl font-bold text-blue-600">{weightedXirr.toFixed(2)}%</p>
                             <p className="text-xs text-gray-500 mt-1">Overall portfolio performance</p>
                         </div>
                         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">

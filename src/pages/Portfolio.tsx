@@ -3,7 +3,7 @@
  * Performance & Growth Metrics - The "Health Check"
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
     AreaChart,
     Area,
@@ -12,86 +12,65 @@ import {
     CartesianGrid,
     Tooltip,
     ResponsiveContainer,
-    Line,
-    ComposedChart,
     BarChart,
     Bar,
-    PieChart,
-    Pie,
-    Cell,
-    Legend,
 } from 'recharts';
-import { TrendingUp, TrendingDown, Award, Droplets, DollarSign, BarChart3, Download, RefreshCw } from 'lucide-react';
+import { TrendingUp, Download, RefreshCw, X } from 'lucide-react';
 import { useUnifiedAnalysis } from '../hooks/useReports';
+import { usePortfolioOverview } from '../hooks/usePortfolio';
 import { TimePeriodSelector, type TimePeriod } from '../components/ui/TimePeriodSelector';
-
-// Demo data for portfolio growth (fallback when API unavailable)
-const DEMO_GROWTH_DATA = [
-    { month: 'Jan', portfolio: 1980000, invested: 1900000, equity: 1100000, fixedIncome: 600000, alts: 280000 },
-    { month: 'Feb', portfolio: 2020000, invested: 1920000, equity: 1150000, fixedIncome: 590000, alts: 280000 },
-    { month: 'Mar', portfolio: 1950000, invested: 1940000, equity: 1050000, fixedIncome: 620000, alts: 280000 },
-    { month: 'Apr', portfolio: 2050000, invested: 1960000, equity: 1180000, fixedIncome: 590000, alts: 280000 },
-    { month: 'May', portfolio: 2080000, invested: 1980000, equity: 1200000, fixedIncome: 600000, alts: 280000 },
-    { month: 'Jun', portfolio: 2100000, invested: 2000000, equity: 1210000, fixedIncome: 610000, alts: 280000 },
-    { month: 'Jul', portfolio: 2050000, invested: 2020000, equity: 1150000, fixedIncome: 620000, alts: 280000 },
-    { month: 'Aug', portfolio: 2090000, invested: 2040000, equity: 1190000, fixedIncome: 620000, alts: 280000 },
-    { month: 'Sep', portfolio: 2100000, invested: 2060000, equity: 1200000, fixedIncome: 620000, alts: 280000 },
-    { month: 'Oct', portfolio: 2110000, invested: 2080000, equity: 1210000, fixedIncome: 620000, alts: 280000 },
-    { month: 'Nov', portfolio: 2130000, invested: 2100000, equity: 1230000, fixedIncome: 620000, alts: 280000 },
-    { month: 'Dec', portfolio: 2140580, invested: 2012130, equity: 1250000, fixedIncome: 610000, alts: 280580 },
-];
-
-// YoY Net Worth data (fallback)
-const DEMO_YOY_DATA = [
-    { year: '2020', growth: 180000, baseline: 1400000 },
-    { year: '2021', growth: 220000, baseline: 1580000 },
-    { year: '2022', growth: 150000, baseline: 1800000 },
-    { year: '2023', growth: 280000, baseline: 1950000 },
-    { year: '2024', growth: 190000, baseline: 2230000 },
-];
-
-// Performance by asset class (fallback)
-const DEMO_PERFORMANCE_DATA = [
-    { name: 'Public Equity', xirr: 14.2, color: '#3b82f6' },
-    { name: 'Fixed Income', xirr: 4.8, color: '#f59e0b' },
-    { name: 'Alternatives', xirr: 9.1, color: '#22c55e' },
-    { name: 'Real Estate', xirr: 6.5, color: '#8b5cf6' },
-    { name: 'Cash / Equiv', xirr: 3.2, color: '#64748b' },
-];
-
-// Allocation data for donut (fallback)
-const DEMO_ALLOCATION_DATA = [
-    { name: 'Equity', value: 55, color: '#3b82f6' },
-    { name: 'Fixed Income', value: 25, color: '#f59e0b' },
-    { name: 'Alternatives', value: 12, color: '#22c55e' },
-    { name: 'Cash', value: 8, color: '#94a3b8' },
-];
 
 const Portfolio: React.FC = () => {
     const [period, setPeriod] = useState<TimePeriod>('YTD');
-    const { data: analysisData, isLoading, refetch, isFetching } = useUnifiedAnalysis();
+    const { data: analysisData, isLoading: analysisLoading, error: analysisError, refetch, isFetching } = useUnifiedAnalysis();
+    const { data: portfolioData, isLoading: portfolioLoading, error: portfolioError } = usePortfolioOverview();
 
-    // Use API data with demo fallback
-    const growthData = React.useMemo(() => {
-        // TODO: Transform analysisData.trend_data when available
-        return DEMO_GROWTH_DATA;
+    const isLoading = analysisLoading || portfolioLoading;
+    const error = analysisError || portfolioError;
+
+    // Transform API trend data for chart
+    const growthData = useMemo(() => {
+        if (!portfolioData?.trend?.dates || !portfolioData?.trend?.values) {
+            return null;
+        }
+        return portfolioData.trend.dates.map((date: string, i: number) => ({
+            month: new Date(date).toLocaleString('default', { month: 'short' }),
+            portfolio: portfolioData.trend.values[i],
+            date: date,
+        }));
+    }, [portfolioData]);
+
+    // Extract asset allocation for YoY-like breakdown
+    const allocationData = useMemo(() => {
+        if (!portfolioData?.allocation) return null;
+        return Object.entries(portfolioData.allocation).map(([name, value]) => ({
+            name,
+            value: value as number,
+        }));
+    }, [portfolioData]);
+
+    // Performance by asset class from analysis data
+    const performanceData = useMemo(() => {
+        if (!analysisData?.rebalancing_analysis?.categories) return null;
+        return analysisData.rebalancing_analysis.categories.slice(0, 5).map((cat: any) => ({
+            name: cat.name,
+            xirr: cat.actual_pct || 0,
+            color: '#3b82f6',
+        }));
     }, [analysisData]);
 
-    const yoyData = DEMO_YOY_DATA;
-    const performanceData = DEMO_PERFORMANCE_DATA;
-    const allocationData = DEMO_ALLOCATION_DATA;
-
-    // Extract portfolio snapshot data with fallback
-    const netWorth = analysisData?.portfolio_snapshot?.total_value || 2140580;
-    const ytdGrowth = analysisData?.performance_data?.ytd_return || 6.4;
+    // Extract portfolio snapshot data
+    const netWorth = analysisData?.portfolio_snapshot?.total_value || portfolioData?.total_portfolio_value || 0;
+    const ytdGrowth = analysisData?.performance_data?.ytd_return || 0;
     const ytdAmount = Math.round(netWorth * (ytdGrowth / 100));
-    const liquidAssets = analysisData?.portfolio_snapshot?.liquid_assets || 420000;
+    const holdingsCount = portfolioData?.current_holdings_count || 0;
 
     const handleExport = () => {
+        if (!growthData) return;
         // Create CSV export of portfolio data
         const csvContent = [
-            ['Month', 'Portfolio Value', 'Invested', 'Equity', 'Fixed Income', 'Alternatives'],
-            ...growthData.map(row => [row.month, row.portfolio, row.invested, row.equity, row.fixedIncome, row.alts])
+            ['Month', 'Date', 'Portfolio Value'],
+            ...growthData.map(row => [row.month, row.date, row.portfolio])
         ].map(row => row.join(',')).join('\n');
 
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -109,6 +88,26 @@ const Portfolio: React.FC = () => {
                 <div className="flex flex-col items-center gap-4">
                     <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
                     <p className="text-sm font-medium text-gray-500">Loading portfolio...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex h-[60vh] items-center justify-center">
+                <div className="text-center">
+                    <div className="mx-auto mb-4 rounded-full bg-red-100 p-4 w-16 h-16 flex items-center justify-center">
+                        <X className="h-8 w-8 text-red-600" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Unable to Load Portfolio</h3>
+                    <p className="text-sm text-gray-500 mb-4">{error?.message || 'Failed to fetch portfolio data'}</p>
+                    <button
+                        onClick={() => refetch()}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                        Try Again
+                    </button>
                 </div>
             </div>
         );
@@ -142,119 +141,121 @@ const Portfolio: React.FC = () => {
                 </div>
             </div>
 
-            {/* Row 1: Hero - Asset Category Growth */}
+            {/* Row 1: Hero - Portfolio Growth Trend */}
             <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                     <div>
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Asset Category Growth</h3>
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Portfolio Growth</h3>
                         <div className="flex items-baseline gap-3">
                             <span className="text-4xl font-bold text-gray-900">
-                                ${netWorth.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                                ¥{netWorth.toLocaleString()}
                             </span>
-                            <span className="flex items-center text-emerald-500 font-semibold text-sm">
-                                <TrendingUp size={16} className="mr-1" />
-                                +${ytdAmount.toLocaleString()} (+{ytdGrowth}%) YTD
-                            </span>
+                            {ytdGrowth !== 0 && (
+                                <span className={`flex items-center font-semibold text-sm ${ytdGrowth >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                    <TrendingUp size={16} className="mr-1" />
+                                    {ytdGrowth >= 0 ? '+' : ''}¥{ytdAmount.toLocaleString()} ({ytdGrowth.toFixed(1)}%) YTD
+                                </span>
+                            )}
                         </div>
-                    </div>
-                    <div className="flex gap-4 text-sm">
-                        <span className="flex items-center gap-2">
-                            <span className="h-3 w-3 rounded-full bg-blue-500"></span>
-                            Equity
-                        </span>
-                        <span className="flex items-center gap-2">
-                            <span className="h-3 w-3 rounded-full bg-amber-400"></span>
-                            Fixed Income
-                        </span>
-                        <span className="flex items-center gap-2">
-                            <span className="h-3 w-3 rounded-full bg-emerald-400"></span>
-                            Alts
-                        </span>
+                        <p className="text-sm text-gray-500 mt-1">{holdingsCount} holdings</p>
                     </div>
                 </div>
 
-                <ResponsiveContainer width="100%" height={280}>
-                    <AreaChart data={growthData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                        <defs>
-                            <linearGradient id="equityGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
-                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
-                            </linearGradient>
-                            <linearGradient id="fixedGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
-                                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.05} />
-                            </linearGradient>
-                            <linearGradient id="altsGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4} />
-                                <stop offset="95%" stopColor="#22c55e" stopOpacity={0.05} />
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                        <XAxis dataKey="month" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
-                        <YAxis
-                            tick={{ fill: '#64748b', fontSize: 12 }}
-                            tickFormatter={(v) => `$${(v / 1000000).toFixed(1)}M`}
-                            axisLine={false}
-                            tickLine={false}
-                        />
-                        <Tooltip
-                            contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#f8fafc' }}
-                            formatter={(value: number) => [`$${value.toLocaleString()}`, '']}
-                        />
-                        <Area type="monotone" dataKey="equity" stackId="1" stroke="#3b82f6" fill="url(#equityGrad)" />
-                        <Area type="monotone" dataKey="fixedIncome" stackId="1" stroke="#f59e0b" fill="url(#fixedGrad)" />
-                        <Area type="monotone" dataKey="alts" stackId="1" stroke="#22c55e" fill="url(#altsGrad)" />
-                    </AreaChart>
-                </ResponsiveContainer>
+                {growthData ? (
+                    <ResponsiveContainer width="100%" height={280}>
+                        <AreaChart data={growthData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="portfolioGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                            <XAxis dataKey="month" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} tickLine={false} />
+                            <YAxis
+                                tick={{ fill: '#64748b', fontSize: 12 }}
+                                tickFormatter={(v) => `¥${(v / 1000000).toFixed(1)}M`}
+                                axisLine={false}
+                                tickLine={false}
+                            />
+                            <Tooltip
+                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#f8fafc' }}
+                                formatter={(value: number) => [`¥${value.toLocaleString()}`, 'Portfolio']}
+                            />
+                            <Area type="monotone" dataKey="portfolio" stroke="#3b82f6" fill="url(#portfolioGrad)" />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                ) : (
+                    <div className="flex h-[280px] items-center justify-center bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-500">No trend data available</p>
+                    </div>
+                )}
             </div>
 
-            {/* Row 2: Performance by Class + YoY Growth */}
+            {/* Row 2: Performance by Class + Asset Allocation */}
             <div className="grid gap-6 lg:grid-cols-2">
                 {/* Performance by Class */}
                 <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Performance by Class (XIRR)</h3>
-                        <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">Last 12 Months</span>
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Asset Allocation</h3>
                     </div>
-                    <div className="space-y-4">
-                        {performanceData.map((item) => (
-                            <div key={item.name}>
-                                <div className="flex justify-between text-sm mb-1.5">
-                                    <span className="font-medium text-gray-700">{item.name}</span>
-                                    <span className="font-bold text-gray-900">{item.xirr}%</span>
+                    {allocationData && allocationData.length > 0 ? (
+                        <div className="space-y-4">
+                            {allocationData.map((item) => (
+                                <div key={item.name}>
+                                    <div className="flex justify-between text-sm mb-1.5">
+                                        <span className="font-medium text-gray-700">{item.name}</span>
+                                        <span className="font-bold text-gray-900">¥{item.value.toLocaleString()}</span>
+                                    </div>
+                                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full rounded-full transition-all duration-700 bg-blue-500"
+                                            style={{
+                                                width: `${Math.min((item.value / netWorth) * 100, 100)}%`,
+                                            }}
+                                        />
+                                    </div>
                                 </div>
-                                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full rounded-full transition-all duration-700"
-                                        style={{
-                                            width: `${Math.min(item.xirr * 6, 100)}%`,
-                                            backgroundColor: item.color
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex h-[200px] items-center justify-center bg-gray-50 rounded-lg">
+                            <p className="text-sm text-gray-500">No allocation data available</p>
+                        </div>
+                    )}
                 </div>
 
-                {/* YoY Net Worth Growth */}
+                {/* Performance by Class */}
                 <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">YoY Net Worth Growth</h3>
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Performance by Class</h3>
+                        <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">Last 12 Months</span>
                     </div>
-                    <ResponsiveContainer width="100%" height={220}>
-                        <BarChart data={yoyData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                            <XAxis dataKey="year" tick={{ fill: '#64748b', fontSize: 12 }} axisLine={false} />
-                            <YAxis tick={{ fill: '#64748b', fontSize: 12 }} tickFormatter={(v) => `$${(v / 1000000).toFixed(1)}M`} axisLine={false} />
-                            <Tooltip
-                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#f8fafc' }}
-                                formatter={(value: number) => [`$${value.toLocaleString()}`, '']}
-                            />
-                            <Bar dataKey="baseline" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
-                            <Bar dataKey="growth" stackId="a" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
+                    {performanceData && performanceData.length > 0 ? (
+                        <div className="space-y-4">
+                            {performanceData.map((item) => (
+                                <div key={item.name}>
+                                    <div className="flex justify-between text-sm mb-1.5">
+                                        <span className="font-medium text-gray-700">{item.name}</span>
+                                        <span className="font-bold text-gray-900">{item.xirr?.toFixed(1) || 0}%</span>
+                                    </div>
+                                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full rounded-full transition-all duration-700"
+                                            style={{
+                                                width: `${Math.min(item.xirr * 6, 100)}%`,
+                                                backgroundColor: item.color
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex h-[200px] items-center justify-center bg-gray-50 rounded-lg">
+                            <p className="text-sm text-gray-500">No performance data available</p>
+                        </div>
+                    )}
                 </div>
             </div>
 

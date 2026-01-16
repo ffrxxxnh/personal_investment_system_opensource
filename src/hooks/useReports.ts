@@ -15,6 +15,7 @@ import type {
   SimulationResponse,
   SimulationParams,
   MarketThermometerResponse,
+  LifetimePerformanceResponse,
 } from '../api/types';
 
 // Query keys for cache management
@@ -24,6 +25,7 @@ export const REPORTS_QUERY_KEYS = {
   cashFlow: ['reports', 'wealth', 'cashflow'] as const,
   correlation: ['reports', 'correlation'] as const,
   marketThermometer: ['reports', 'market-thermometer'] as const,
+  lifetimePerformance: ['reports', 'lifetime-performance'] as const,
   simulation: (params: SimulationParams) => ['reports', 'simulation', params] as const,
 };
 
@@ -142,6 +144,33 @@ export function useCorrelation(enabled: boolean = false) {
     staleTime: 30 * 60 * 1000, // 30 minutes (changes rarely)
     gcTime: 60 * 60 * 1000,    // 1 hour
     retry: 1,
+  });
+}
+
+/**
+ * Fetch lifetime performance data
+ *
+ * Returns realized vs unrealized gains breakdown, sub-class performance,
+ * and individual asset performance scorecards.
+ *
+ * Used by: /reports/lifetime-performance page
+ */
+export function useLifetimePerformance() {
+  return useQuery({
+    queryKey: REPORTS_QUERY_KEYS.lifetimePerformance,
+    queryFn: async () => {
+      const result = await api.get<LifetimePerformanceResponse>(ENDPOINTS.LIFETIME_PERFORMANCE);
+
+      if (!result.success) {
+        throw new Error(result.error.message);
+      }
+
+      return result.data;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 30 * 60 * 1000,   // 30 minutes
+    retry: 2,
+    refetchOnWindowFocus: false,
   });
 }
 

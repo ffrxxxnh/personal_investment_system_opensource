@@ -25,7 +25,8 @@ Complete redesign of the Personal Investment System UI following `docs/design-fr
 | 11 | Remaining Pages | ✅ Complete | Wealth, Settings, Simulation, Performance, Logic Studio |
 | 12 | Final Polish | ✅ Complete | Dark mode, code splitting, template deprecation |
 | 13 | E2E Testing | ✅ Complete | Playwright tests for all pages (24 tests) |
-| 14 | Upstream Fixes | 🔄 Pending | Fixes from Legacy Real Data testing |
+| 14 | Upstream Fixes | ✅ Complete | Fixes from Legacy Real Data testing |
+| 15 | Data Integration | ✅ Complete | Removed demo data, fixed UI controls |
 
 ---
 
@@ -142,7 +143,7 @@ Complete redesign of the Personal Investment System UI following `docs/design-fr
   - Enables proper React Router handling for SPA navigation
 - [x] All 24 tests passing
 
-### Phase 14: Upstream Fixes (From Legacy Testing) 🔄
+### Phase 14: Upstream Fixes (From Legacy Testing) ✅ (2026-01-15)
 
 > **Context**: Issues identified during real-data testing in the Legacy Repo (Jan 15, 2026).
 
@@ -195,6 +196,44 @@ Complete redesign of the Personal Investment System UI following `docs/design-fr
 | 2026-01-14 | **Code splitting** - React.lazy(), chunk size 235KB | Template deprecation |
 | 2026-01-14 | **Template deprecation** - 21 templates moved to deprecated/ | **Phase 12 Complete** |
 | 2026-01-15 | **E2E Testing** - Playwright with 24 tests, all passing | **Phase 13 Complete** |
+| 2026-01-16 | **Phase 15 Complete** - Removed demo data from 4 pages, UI controls fixed | Sync to Legacy |
+
+### Phase 15: Data Integration & UI Controls Fix ✅ (2026-01-16)
+
+> **Context**: Issues identified during Legacy repo testing - hardcoded demo data instead of API integration.
+
+**Category A: Hardcoded Demo Data Removal** ✅
+
+- [x] Create `/api/lifetime_performance` endpoint and `LifetimePerformanceService`
+- [x] Add `useLifetimePerformance()` hook and TypeScript types
+- [x] Refactor `LifetimePerformance.tsx` - removed DEMO constants, integrated API, added loading/error states
+- [x] Refactor `Portfolio.tsx` - removed all DEMO constants, added `usePortfolioOverview` hook
+- [x] Refactor `CashFlow.tsx` - removed demo data, added conditional rendering for null states
+- [x] Refactor `Compass.tsx` - removed demo fallbacks, added null-safe rendering
+- [ ] Enhance `/api/unified_analysis` - add growth_trend_data, yoy_data (deferred - existing data sufficient)
+- [ ] Enhance `/wealth/api/cash-flow` - add forecast, income/expense breakdowns (deferred - existing data sufficient)
+
+**Category B: Non-Functional UI Controls** ✅
+
+- [x] Fix `LifetimePerformance.tsx` pagination buttons (added onClick handlers, state management)
+- [x] Fix `LifetimePerformance.tsx` Filter button (added toggle state and search)
+- [x] Fix `LifetimePerformance.tsx` Export CSV button (added handleExport function)
+- [x] Fix Export/Refresh buttons on Portfolio, CashFlow, Compass
+- [ ] Fix `TimePeriodSelector` to actually refresh data on change (deferred - requires API period param support)
+- [ ] Fix `RiskProfiles.tsx` "New Profile" button (deferred)
+
+**Category C: UI Polish** (Deferred)
+
+- [ ] Replace `alert()` with toast notifications in Logic Studio
+- [ ] Fix Dashboard Hero Chart hover labels
+- [ ] Diversify Allocation Chart colors
+
+**Files Modified (Phase 15):**
+
+- `src/pages/reports/LifetimePerformance.tsx` - Complete refactor with API integration
+- `src/pages/Portfolio.tsx` - Removed DEMO constants, added usePortfolioOverview
+- `src/pages/reports/CashFlow.tsx` - Removed demo data, conditional rendering
+- `src/pages/reports/Compass.tsx` - Removed demo fallbacks, null-safe rendering
 
 ---
 

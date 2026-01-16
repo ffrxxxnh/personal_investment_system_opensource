@@ -291,6 +291,33 @@ def market_thermometer_api():
 		}), 500
 
 
+@api_bp.route('/lifetime_performance', methods=['GET'])
+@login_required
+def lifetime_performance_api():
+	"""
+	Lifetime Performance API endpoint.
+
+	Returns realized vs unrealized gains breakdown, sub-class performance,
+	and individual asset performance scorecards.
+
+	Used by: /reports/lifetime-performance page
+	"""
+	try:
+		from src.web_app.services.lifetime_performance_service import LifetimePerformanceService
+
+		service = LifetimePerformanceService()
+		data = service.get_performance_data()
+
+		return jsonify(data)
+	except Exception as e:
+		logger.error(f"Error in lifetime performance API: {e}", exc_info=True)
+		return jsonify({
+			'status': 'error',
+			'error': str(e),
+			'generated_at': datetime.now().isoformat()
+		}), 500
+
+
 @api_bp.route('/cache/refresh', methods=['POST'])
 @login_required
 def refresh_cache():

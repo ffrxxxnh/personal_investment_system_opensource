@@ -347,3 +347,53 @@ Brief description and goals
 - Multiple developers may work on it
 - Complex enough to need research phase
 - Requires design decisions with trade-offs
+
+## Data Source Connectors
+
+The system supports multiple external data source integrations via connectors in `src/data_manager/connectors/`.
+
+### Available Connectors
+
+| Connector | Type | Purpose | Status |
+|-----------|------|---------|--------|
+| `SchwabConnector` | Broker | Charles Schwab brokerage accounts | Framework only |
+| `MarketDataConnector` | Market | Price data (Tiingo, Yahoo, Alpha Vantage) | Active |
+| `MaybeConnector` | PFM | Maybe Finance self-hosted API | **New** |
+
+### Maybe Finance Connector
+
+Connects to self-hosted [Maybe Finance](https://github.com/maybe-finance/maybe) for personal finance data.
+
+**Features:**
+- OAuth2 and API Key authentication
+- Account balances → Balance sheet data
+- Transaction history → Income/expense tracking
+- Automatic rate limiting and caching
+
+**Configuration** (`config/data_sources.yaml`):
+```yaml
+personal_finance:
+  maybe:
+    enabled: false  # Enable in your local config
+    base_url: "http://localhost:3000"
+    auth_type: api_key
+    api_key: ${MAYBE_API_KEY}
+```
+
+**Usage Example:**
+```python
+from src.data_manager.connectors import MaybeConnector
+
+connector = MaybeConnector({
+    'base_url': 'http://localhost:3000',
+    'auth_type': 'api_key',
+    'api_key': 'your-api-key',
+})
+
+success, msg = connector.authenticate()
+accounts = connector.get_accounts()
+transactions = connector.get_transactions(since_date=datetime(2024, 1, 1))
+balance_sheet = connector.get_balance_sheet_data()
+```
+
+**Note:** For development in the open source repo, use mock data or a local Maybe Finance instance with demo data. Real financial data belongs only in the Legacy repo.

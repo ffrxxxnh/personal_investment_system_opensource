@@ -31,63 +31,26 @@ const CashFlow: React.FC = () => {
     const [period, setPeriod] = useState<TimePeriod>('1Y');
     const { data: cashFlowData, isLoading, error, refetch, isFetching } = useCashFlow();
 
-    // Demo data for visualization
+    // Transform API data for charts
     const monthlyData = React.useMemo(() => {
-        if (cashFlowData?.monthly) {
-            return cashFlowData.monthly.map((m: any) => ({
-                month: m.month,
-                income: m.income || 0,
-                expense: m.expense || 0,
-                net: (m.income || 0) - (m.expense || 0),
-            }));
-        }
-        // Demo data
-        return [
-            { month: 'Jan', income: 32000, expense: 18000, net: 14000 },
-            { month: 'Feb', income: 28000, expense: 19000, net: 9000 },
-            { month: 'Mar', income: 35000, expense: 17000, net: 18000 },
-            { month: 'Apr', income: 30000, expense: 20000, net: 10000 },
-            { month: 'May', income: 33000, expense: 18500, net: 14500 },
-            { month: 'Jun', income: 38000, expense: 21000, net: 17000 },
-            { month: 'Jul', income: 31000, expense: 19000, net: 12000 },
-            { month: 'Aug', income: 34000, expense: 20000, net: 14000 },
-            { month: 'Sep', income: 36000, expense: 18000, net: 18000 },
-            { month: 'Oct', income: 32000, expense: 19500, net: 12500 },
-            { month: 'Nov', income: 40000, expense: 22000, net: 18000 },
-            { month: 'Dec', income: 45000, expense: 25000, net: 20000 },
-        ];
+        if (!cashFlowData?.monthly) return null;
+        return cashFlowData.monthly.map((m: any) => ({
+            month: m.month,
+            income: m.income || 0,
+            expense: m.expense || 0,
+            net: (m.income || 0) - (m.expense || 0),
+        }));
     }, [cashFlowData]);
 
-    const forecastData = [
-        { quarter: 'Q1', projected: 1200000, lower: 1100000, upper: 1350000 },
-        { quarter: 'Q2', projected: 1450000, lower: 1300000, upper: 1650000 },
-        { quarter: 'Q3', projected: 1750000, lower: 1550000, upper: 2000000 },
-        { quarter: 'Q4', projected: 2100000, lower: 1850000, upper: 2400000 },
-    ];
+    // Extract additional data from API (or null if unavailable)
+    const forecastData = cashFlowData?.forecast_data || null;
+    const incomeBreakdown = cashFlowData?.income_breakdown || null;
+    const expenseBreakdown = cashFlowData?.expense_breakdown || null;
+    const expenseCategories = cashFlowData?.expense_categories || null;
 
-    const incomeBreakdown = [
-        { name: 'Salary', value: 220000 },
-        { name: 'RSU', value: 129000 },
-        { name: 'Dividends', value: 40000 },
-    ];
-
-    const expenseBreakdown = [
-        { name: 'Living', value: 60000 },
-        { name: 'Tax', value: 89000 },
-        { name: 'Investments', value: 205000 },
-    ];
-
-    const expenseCategories = [
-        { name: 'Housing', value: 35 },
-        { name: 'Food', value: 15 },
-        { name: 'Transport', value: 10 },
-        { name: 'Entertainment', value: 8 },
-        { name: 'Utilities', value: 7 },
-        { name: 'Other', value: 25 },
-    ];
-
-    const totalIncome = monthlyData.reduce((sum, m) => sum + m.income, 0);
-    const totalExpense = monthlyData.reduce((sum, m) => sum + m.expense, 0);
+    // Calculate totals from API data
+    const totalIncome = monthlyData?.reduce((sum, m) => sum + m.income, 0) || 0;
+    const totalExpense = monthlyData?.reduce((sum, m) => sum + m.expense, 0) || 0;
     const netFlow = totalIncome - totalExpense;
 
     if (isLoading) {
@@ -167,79 +130,85 @@ const CashFlow: React.FC = () => {
                 </div>
 
                 {/* Improved Sankey visualization */}
-                <div className="flex items-center justify-center gap-8 py-8">
-                    {/* Income sources */}
-                    <div className="flex flex-col gap-3 min-w-[160px]">
-                        {incomeBreakdown.map((item, i) => {
-                            const height = Math.max(40, (item.value / 4000) + 30);
-                            return (
-                                <div
-                                    key={item.name}
-                                    className="group relative flex items-center gap-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200/60 px-4 transition-all hover:shadow-md hover:scale-[1.02]"
-                                    style={{ height: `${height}px` }}
-                                >
-                                    <div className="w-1 h-3/4 rounded-full bg-gradient-to-b from-emerald-400 to-emerald-600" />
-                                    <div className="flex-1">
-                                        <span className="text-sm font-semibold text-emerald-800">{item.name}</span>
-                                        <p className="text-xs text-emerald-600 font-mono">¥{(item.value / 1000).toFixed(0)}k</p>
+                {incomeBreakdown && expenseBreakdown ? (
+                    <div className="flex items-center justify-center gap-8 py-8">
+                        {/* Income sources */}
+                        <div className="flex flex-col gap-3 min-w-[160px]">
+                            {incomeBreakdown.map((item: any, i: number) => {
+                                const height = Math.max(40, (item.value / 4000) + 30);
+                                return (
+                                    <div
+                                        key={item.name}
+                                        className="group relative flex items-center gap-3 rounded-xl bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200/60 px-4 transition-all hover:shadow-md hover:scale-[1.02]"
+                                        style={{ height: `${height}px` }}
+                                    >
+                                        <div className="w-1 h-3/4 rounded-full bg-gradient-to-b from-emerald-400 to-emerald-600" />
+                                        <div className="flex-1">
+                                            <span className="text-sm font-semibold text-emerald-800">{item.name}</span>
+                                            <p className="text-xs text-emerald-600 font-mono">¥{(item.value / 1000).toFixed(0)}k</p>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                );
+                            })}
+                        </div>
 
-                    {/* Flow connectors */}
-                    <div className="flex flex-col items-center justify-center relative w-32">
-                        <svg className="w-full h-40" viewBox="0 0 100 120">
-                            <defs>
-                                <linearGradient id="flowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
-                                    <stop offset="50%" stopColor="#94a3b8" stopOpacity="0.2" />
-                                    <stop offset="100%" stopColor="#ef4444" stopOpacity="0.4" />
-                                </linearGradient>
-                            </defs>
-                            {/* Flow paths */}
-                            <path d="M 0 20 Q 50 20, 100 30" fill="none" stroke="url(#flowGrad)" strokeWidth="8" strokeLinecap="round" opacity="0.6" />
-                            <path d="M 0 60 Q 50 60, 100 60" fill="none" stroke="url(#flowGrad)" strokeWidth="12" strokeLinecap="round" opacity="0.8" />
-                            <path d="M 0 100 Q 50 100, 100 90" fill="none" stroke="url(#flowGrad)" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                        </svg>
-                        <div className="absolute bottom-0 text-center">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Total Flow</span>
-                            <p className="text-xs font-mono text-gray-600">¥389k</p>
+                        {/* Flow connectors */}
+                        <div className="flex flex-col items-center justify-center relative w-32">
+                            <svg className="w-full h-40" viewBox="0 0 100 120">
+                                <defs>
+                                    <linearGradient id="flowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
+                                        <stop offset="50%" stopColor="#94a3b8" stopOpacity="0.2" />
+                                        <stop offset="100%" stopColor="#ef4444" stopOpacity="0.4" />
+                                    </linearGradient>
+                                </defs>
+                                {/* Flow paths */}
+                                <path d="M 0 20 Q 50 20, 100 30" fill="none" stroke="url(#flowGrad)" strokeWidth="8" strokeLinecap="round" opacity="0.6" />
+                                <path d="M 0 60 Q 50 60, 100 60" fill="none" stroke="url(#flowGrad)" strokeWidth="12" strokeLinecap="round" opacity="0.8" />
+                                <path d="M 0 100 Q 50 100, 100 90" fill="none" stroke="url(#flowGrad)" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
+                            </svg>
+                            <div className="absolute bottom-0 text-center">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Total Flow</span>
+                                <p className="text-xs font-mono text-gray-600">¥{(totalIncome / 1000).toFixed(0)}k</p>
+                            </div>
+                        </div>
+
+                        {/* Outflow */}
+                        <div className="flex flex-col gap-3 min-w-[160px]">
+                            {expenseBreakdown.map((item: any, i: number) => {
+                                const height = Math.max(40, (item.value / 4000) + 30);
+                                const isInvestment = item.name === 'Investments';
+                                return (
+                                    <div
+                                        key={item.name}
+                                        className={`group relative flex items-center gap-3 rounded-xl border px-4 transition-all hover:shadow-md hover:scale-[1.02] ${isInvestment
+                                            ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200/60'
+                                            : 'bg-gradient-to-r from-red-50 to-red-100 border-red-200/60'
+                                            }`}
+                                        style={{ height: `${height}px` }}
+                                    >
+                                        <div className={`w-1 h-3/4 rounded-full ${isInvestment
+                                            ? 'bg-gradient-to-b from-blue-400 to-blue-600'
+                                            : 'bg-gradient-to-b from-red-400 to-red-600'
+                                            }`} />
+                                        <div className="flex-1">
+                                            <span className={`text-sm font-semibold ${isInvestment ? 'text-blue-800' : 'text-red-800'}`}>
+                                                {item.name}
+                                            </span>
+                                            <p className={`text-xs font-mono ${isInvestment ? 'text-blue-600' : 'text-red-600'}`}>
+                                                ¥{(item.value / 1000).toFixed(0)}k
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
-
-                    {/* Outflow */}
-                    <div className="flex flex-col gap-3 min-w-[160px]">
-                        {expenseBreakdown.map((item, i) => {
-                            const height = Math.max(40, (item.value / 4000) + 30);
-                            const isInvestment = item.name === 'Investments';
-                            return (
-                                <div
-                                    key={item.name}
-                                    className={`group relative flex items-center gap-3 rounded-xl border px-4 transition-all hover:shadow-md hover:scale-[1.02] ${isInvestment
-                                        ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200/60'
-                                        : 'bg-gradient-to-r from-red-50 to-red-100 border-red-200/60'
-                                        }`}
-                                    style={{ height: `${height}px` }}
-                                >
-                                    <div className={`w-1 h-3/4 rounded-full ${isInvestment
-                                        ? 'bg-gradient-to-b from-blue-400 to-blue-600'
-                                        : 'bg-gradient-to-b from-red-400 to-red-600'
-                                        }`} />
-                                    <div className="flex-1">
-                                        <span className={`text-sm font-semibold ${isInvestment ? 'text-blue-800' : 'text-red-800'}`}>
-                                            {item.name}
-                                        </span>
-                                        <p className={`text-xs font-mono ${isInvestment ? 'text-blue-600' : 'text-red-600'}`}>
-                                            ¥{(item.value / 1000).toFixed(0)}k
-                                        </p>
-                                    </div>
-                                </div>
-                            );
-                        })}
+                ) : (
+                    <div className="flex h-[200px] items-center justify-center bg-gray-50 rounded-lg">
+                        <p className="text-sm text-gray-500">No cash flow breakdown data available</p>
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Row 2: Trends */}

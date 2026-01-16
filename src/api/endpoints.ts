@@ -27,6 +27,7 @@ export const ENDPOINTS = {
 
   // Reports
   REPORTS_CORRELATION: '/reports/api/correlation',
+  LIFETIME_PERFORMANCE: '/api/lifetime_performance',
 
   // Simulation
   SIMULATION_RUN: '/reports/simulation/api/run',

@@ -209,3 +209,59 @@ export interface SimulationResponse {
     generated_at: string;
   };
 }
+
+// === Lifetime Performance Types ===
+
+// Asset Performance Record
+export interface AssetPerformance {
+  name: string;
+  asset_class: string;
+  sub_class: string;
+  holding_period: string;
+  status: 'ACTIVE' | 'CLOSED';
+  total_invested: number;
+  current_value: number;
+  cost_basis: number;
+  realized_gain: number;
+  unrealized_gain: number;
+  total_gain: number;
+  return_pct: number;
+}
+
+// Gains Breakdown Item (for charts)
+export interface GainsBreakdownItem {
+  name: string;
+  value: number;
+  color: string;
+}
+
+// Sub-class Breakdown Item
+export interface SubclassBreakdown {
+  name: string;
+  realized: number;
+  unrealized: number;
+  total: number;
+  color: string;
+}
+
+// Gains Summary
+export interface GainsSummary {
+  total_realized: number;
+  total_unrealized: number;
+  total_gains: number;
+  weighted_xirr: number;
+}
+
+// Lifetime Performance Response
+export interface LifetimePerformanceResponse {
+  status: 'success' | 'error';
+  gains_summary: GainsSummary | null;
+  gains_breakdown: GainsBreakdownItem[];
+  subclass_breakdown: SubclassBreakdown[];
+  asset_performance: AssetPerformance[];
+  active_assets: number;
+  total_assets: number;
+  currency: string;
+  generated_at: string;
+  error?: string;
+}

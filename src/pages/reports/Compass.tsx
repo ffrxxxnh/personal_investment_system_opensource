@@ -13,50 +13,17 @@ import DivergingBarChart from '../../components/charts/DivergingBarChart';
 import CorrelationMatrix from '../../components/charts/CorrelationMatrix';
 import { TimePeriodSelector, type TimePeriod } from '../../components/ui/TimePeriodSelector';
 
-// Demo data for when API is unavailable
-const DEMO_ALLOCATION = [
-    { name: 'Equity', target: 60, current: 65 },
-    { name: 'Fixed Inc', target: 25, current: 20 },
-    { name: 'Alts', target: 10, current: 10 },
-    { name: 'Cash', target: 5, current: 5 },
-];
-
-const DEMO_DRIFT = [
-    { name: 'US Equity', drift: 5, isCritical: false },
-    { name: 'Intl Equity', drift: 2, isCritical: false },
-    { name: 'Bonds', drift: -4, isCritical: false },
-    { name: 'REITs', drift: -1, isCritical: false },
-    { name: 'Gold', drift: 7, isCritical: true },
-];
-
-const DEMO_CORRELATION = {
-    assets: ['US Eq', 'Intl Eq', 'Bonds', 'REITs', 'Gold'],
-    matrix: [
-        [1.0, 0.82, -0.12, 0.45, 0.05],
-        [0.82, 1.0, -0.08, 0.38, 0.12],
-        [-0.12, -0.08, 1.0, 0.15, 0.22],
-        [0.45, 0.38, 0.15, 1.0, 0.18],
-        [0.05, 0.12, 0.22, 0.18, 1.0],
-    ],
-};
-
-const DEMO_RECOMMENDATIONS = [
-    { priority: 'High', action: 'Sell', asset: 'AAPL', amount: 25000, rationale: 'Reduce tech concentration' },
-    { priority: 'Medium', action: 'Buy', asset: 'BND', amount: 30000, rationale: 'Increase fixed income duration' },
-    { priority: 'Low', action: 'Buy', asset: 'GLD', amount: 10000, rationale: 'Hedge inflation risk' },
-];
-
 const Compass: React.FC = () => {
     const [period, setPeriod] = useState<TimePeriod>('YTD');
-    const { data: analysisData, isLoading: analysisLoading, refetch, isFetching } = useUnifiedAnalysis();
-    const { data: correlationData, isLoading: correlationLoading } = useCorrelation(true);
+    const { data: analysisData, isLoading: analysisLoading, error: analysisError, refetch, isFetching } = useUnifiedAnalysis();
+    const { data: correlationData, isLoading: correlationLoading, error: correlationError } = useCorrelation(true);
     const { data: thermometerData } = useMarketThermometer();
 
-    // Use demo data when API data is unavailable
+    // Transform API data - return null when unavailable instead of demo data
     const allocationData = React.useMemo(() => {
-        if (!analysisData?.rebalancing_analysis?.recommendations) return DEMO_ALLOCATION;
+        if (!analysisData?.rebalancing_analysis?.recommendations) return null;
         const targets = analysisData.rebalancing_analysis.recommendations || [];
-        if (targets.length === 0) return DEMO_ALLOCATION;
+        if (targets.length === 0) return null;
         return targets.slice(0, 5).map((rec: any) => ({
             name: rec.asset_class || rec.asset || 'Unknown',
             target: rec.target_weight || 0,
@@ -65,9 +32,9 @@ const Compass: React.FC = () => {
     }, [analysisData]);
 
     const driftData = React.useMemo(() => {
-        if (!analysisData?.rebalancing_analysis?.recommendations) return DEMO_DRIFT;
+        if (!analysisData?.rebalancing_analysis?.recommendations) return null;
         const recs = analysisData.rebalancing_analysis.recommendations;
-        if (recs.length === 0) return DEMO_DRIFT;
+        if (recs.length === 0) return null;
         return recs.slice(0, 6).map((rec: any) => ({
             name: rec.asset_class || rec.asset || 'Unknown',
             drift: rec.drift_pct || (rec.current_weight - rec.target_weight) || 0,
@@ -75,42 +42,43 @@ const Compass: React.FC = () => {
         }));
     }, [analysisData]);
 
-    const criticalCount = driftData.filter((d) => Math.abs(d.drift) > 5).length;
+    const criticalCount = driftData?.filter((d) => Math.abs(d.drift) > 5).length || 0;
 
-    // Market regime with demo fallback
-    const regime = analysisData?.market_regime || {
-        regime: 'Cautious Rotation',
-        description: 'Market signals suggest reducing beta exposure in tech sectors while increasing quality duration in fixed income.'
-    };
+    // Market regime - null when unavailable
+    const regime = analysisData?.market_regime || null;
 
-    // Fear & Greed Index - from macro_analyzer API with fallback
+    // Fear & Greed Index - from macro_analyzer API
     const fearGreedIndex = React.useMemo(() => {
         if (thermometerData?.fear_greed?.status === 'success') {
             return Math.round(thermometerData.fear_greed.value);
         }
-        return 42; // Demo fallback
+        return null;
     }, [thermometerData]);
-    const fearGreedLabel = fearGreedIndex < 25 ? 'Extreme Fear' :
-        fearGreedIndex < 45 ? 'Fear' :
-            fearGreedIndex < 55 ? 'Neutral' :
-                fearGreedIndex < 75 ? 'Greed' : 'Extreme Greed';
+    const fearGreedLabel = fearGreedIndex !== null ? (
+        fearGreedIndex < 25 ? 'Extreme Fear' :
+            fearGreedIndex < 45 ? 'Fear' :
+                fearGreedIndex < 55 ? 'Neutral' :
+                    fearGreedIndex < 75 ? 'Greed' : 'Extreme Greed'
+    ) : 'N/A';
 
-    // Buffett Indicator (US market) - from macro_analyzer API with fallback
+    // Buffett Indicator (US market) - from macro_analyzer API
     const buffettIndicator = React.useMemo(() => {
         if (thermometerData?.buffett_us?.status === 'success') {
             return Math.round(thermometerData.buffett_us.value);
         }
-        return 178; // Demo fallback
+        return null;
     }, [thermometerData]);
-    const buffettLabel = buffettIndicator > 150 ? 'Overvalued' :
-        buffettIndicator > 100 ? 'Fair Value' : 'Undervalued';
+    const buffettLabel = buffettIndicator !== null ? (
+        buffettIndicator > 150 ? 'Overvalued' :
+            buffettIndicator > 100 ? 'Fair Value' : 'Undervalued'
+    ) : 'N/A';
 
     const matrixData = React.useMemo(() => {
-        if (!correlationData?.matrix) return DEMO_CORRELATION;
+        if (!correlationData?.matrix) return null;
         return correlationData.matrix;
     }, [correlationData]);
 
-    const recommendations = analysisData?.rebalancing_analysis?.recommendations?.slice(0, 5) || DEMO_RECOMMENDATIONS;
+    const recommendations = analysisData?.rebalancing_analysis?.recommendations?.slice(0, 5) ?? null;
 
     if (analysisLoading) {
         return (
@@ -177,28 +145,28 @@ const Compass: React.FC = () => {
                         </div>
                         <div>
                             <div className="flex items-center gap-3">
-                                <h2 className="text-xl font-bold">Current Regime: {regime.regime}</h2>
+                                <h2 className="text-xl font-bold">Current Regime: {regime?.regime || 'Loading...'}</h2>
                                 <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-medium">
                                     Updated 2h ago
                                 </span>
                             </div>
-                            <p className="mt-1 text-blue-100">{regime.description}</p>
+                            <p className="mt-1 text-blue-100">{regime?.description || 'Analyzing market conditions...'}</p>
                         </div>
                     </div>
                     <div className="hidden lg:flex gap-6">
                         {/* Fear & Greed Index */}
                         <div className="text-right">
                             <p className="text-xs text-blue-200">FEAR & GREED</p>
-                            <p className="text-3xl font-bold">{fearGreedIndex}</p>
-                            <p className={`text-xs ${fearGreedIndex < 45 ? 'text-amber-300' : 'text-emerald-300'}`}>
+                            <p className="text-3xl font-bold">{fearGreedIndex ?? '—'}</p>
+                            <p className={`text-xs ${fearGreedIndex !== null && fearGreedIndex < 45 ? 'text-amber-300' : 'text-emerald-300'}`}>
                                 {fearGreedLabel}
                             </p>
                         </div>
                         {/* Buffett Indicator */}
                         <div className="text-right">
                             <p className="text-xs text-blue-200">BUFFETT IND.</p>
-                            <p className="text-3xl font-bold">{buffettIndicator}%</p>
-                            <p className={`text-xs ${buffettIndicator > 150 ? 'text-red-300' : 'text-emerald-300'}`}>
+                            <p className="text-3xl font-bold">{buffettIndicator !== null ? `${buffettIndicator}%` : '—'}</p>
+                            <p className={`text-xs ${buffettIndicator !== null && buffettIndicator > 150 ? 'text-red-300' : 'text-emerald-300'}`}>
                                 {buffettLabel}
                             </p>
                         </div>
